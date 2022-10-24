@@ -1,4 +1,6 @@
 import os
+import numpy as np
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from elphonpy.pseudo import get_pseudos
 
 # A portion of these functions were adapted from pymatgen.io.pwscf, whose author is Shyue Ping Ong. 
@@ -8,17 +10,16 @@ def get_ibrav_celldm(structure, get_primitive=True):
     Return the QE ibrav parameter for the space group of the system and define necessary lattice parameters in bohr radii to interface with QE
     (NOTE: User may need to define ibrav themselves if crystal system is not included in these options/weird structure)
     """
-    from pymatgen.symmetry.analyzer import SpacegroupAnalyzer as sga
 
+    sga = SpacegroupAnalyzer(structure)
     def angs_to_bohr(lattice_param):
         return lattice_param*1.88973
     
     if get_primitive == True:
-        structure = SpacegroupAnalyzer(structure).find_primitive()
-
-    sg = SpacegroupAnalyzer(structure)
-    crys_sys = sg.get_crystal_system()
-    sg_sym = sg.get_space_group_symbol()
+        structure = sga.find_primitive()
+        
+    crys_sys = sga.get_crystal_system()
+    sg_sym = sga.get_space_group_symbol()
     lat = structure.lattice
     dict_ = dict()
 
@@ -529,6 +530,31 @@ class PWInput:
         if m:
             return m.group(1)
         
+def automatic_kppa(structure, kppa):
+    
+    """
+    Prepares input file for QE SCF calculation, writes input file to workdir. 
+
+    Args:
+        structure (Pymatgen Structure or IStructure): Input structure.
+        kppa (float): Density of desired kpoint grid.
+        
+    Returns:
+        kpoint_grid (tuple): kpoint grid for given structure and density.
+    """
+    
+    if np.fabs((np.floor(kppa ** (1 / 3) + 0.5)) ** 3 - kppa) < 1:
+                kppa += kppa * 0.01
+    latt = structure.lattice
+    lengths = latt.abc
+    ngrid = kppa / structure.num_sites
+    mult = (ngrid * lengths[0] * lengths[1] * lengths[2]) ** (1 / 3)
+
+    num_div = [int(np.floor(max(mult / l, 1))) for l in lengths]
+    
+    return tuple(num_div)
+        
+
 def scf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, workdir='./scf', copy_pseudo=True):
     
     """
