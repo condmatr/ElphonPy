@@ -1,4 +1,5 @@
 import os 
+import shutil
 
 qe_pseudo_dir='/home/adam/qe-7.0/pslibrary.1.0.0/pbe/PSEUDOPOTENTIALS'
 
