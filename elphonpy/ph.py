@@ -98,7 +98,7 @@ def q2r(prefix, qlist, workdir='./phonons'):
         f.write('/' + '\n')
     return fc_file_str
     
-def matdyn(prefix, structure, pseudo_dict, fc_file_str, workdir='phonons'):
+def matdyn(prefix, structure, pseudo_dict, fc_file_str, line_density=100, workdir='phonons'):
     
     """
     Prepares input file for QE matdyn.x calculation, writes input file to workdir. 
@@ -116,7 +116,6 @@ def matdyn(prefix, structure, pseudo_dict, fc_file_str, workdir='phonons'):
     """
     
     from pymatgen.core.composition import Element
-    from pymatgen.symmetry.kpath import KPathSeek as seekpath
     
     pseudopotentials = get_pseudos(structure, pseudo_dict, copy_pseudo=False)
     pseudopotentials = pseudopotentials[0]
@@ -135,7 +134,7 @@ def matdyn(prefix, structure, pseudo_dict, fc_file_str, workdir='phonons'):
     
     phonon_file_str = matdyn_dict['flfrq']
     
-    qp_dict = get_simple_kpath(structure)
+    qp_dict = get_simple_kpath(structure=structure, line_density=line_density)
     
     qpoints_out = qp_dict['kpoints']
     
@@ -175,7 +174,7 @@ def plot_phonons(prefix, qp_dict):
     Returns: 
         phonons_dataframe (pandas.DataFrame): The data which the phonons are plotted.
     """
-    df = pd.read_csv(f'phonons/{str.lower(prefix)}.freq.gp', delim_whitespace=True, header=None)
+    phonons_df = pd.read_csv(f'phonons/{str.lower(prefix)}.freq.gp', delim_whitespace=True, header=None)
     col_names = ['High_sym']
 
     high_sym_symbol = qp_dict['path_symbols']
@@ -184,12 +183,12 @@ def plot_phonons(prefix, qp_dict):
     rng = np.arange(1, int(len(list(df))))
     for i in rng:
         col_names.append(f'Mode_{i}')
-    df.columns = col_names
+    phonons_df.columns = col_names
 
     fig, ax = plt.subplots(figsize=[4,3], dpi=300)
     
-    mini = np.min(df.values)
-    maxi = np.max(df.values)
+    mini = np.min(phonons_df.values)
+    maxi = np.max(phonons_df.values)
     if mini > -10:
         miny = -10
     else:
@@ -200,17 +199,17 @@ def plot_phonons(prefix, qp_dict):
     j=0
     for i in range(len(df['High_sym'])):
         if i in high_sym_idx:
-            ax.vlines(df['High_sym'].iloc[i], ymin=miny, ymax=maxy, lw=0.3, colors='k')
-            ax.text(df['High_sym'].iloc[i], -0.05, f'{high_sym_symbol[j]}', ha='center', va='center', transform=ax.transAxes)
+            ax.vlines(phonons_df['High_sym'].iloc[i], ymin=miny, ymax=maxy, lw=0.3, colors='k')
+            ax.text(phonons_df['High_sym'].iloc[i], -0.05, f'{high_sym_symbol[j]}', ha='center', va='center', transform=ax.transAxes)
             j+=1
 
     for i in rng:
-        ax.plot(df['High_sym'], df[f'Mode_{i}'], c='r', lw=0.5)
+        ax.plot(phonons_df['High_sym'], phonons_df[f'Mode_{i}'], c='r', lw=0.5)
     
     ax.ylim(miny,maxy)
-    ax.xlim(0,max(df['High_sym']))
+    ax.xlim(0,max(phonons_df['High_sym']))
     ax.xticks([])
 
     fig.savefig(f'phonons/{prefix}_phonons.png')
     
-    return df
+    return phonons_df

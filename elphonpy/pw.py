@@ -1,4 +1,5 @@
 import os
+import subprocess
 import numpy as np
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from elphonpy.pseudo import get_pseudos
@@ -9,6 +10,13 @@ def get_ibrav_celldm(structure, get_primitive=True):
     """
     Return the QE ibrav parameter for the space group of the system and define necessary lattice parameters in bohr radii to interface with QE
     (NOTE: User may need to define ibrav themselves if crystal system is not included in these options/weird structure)
+
+    Args:
+        structure (Pymatgen Structure or IStructure): Input structure.
+        get_primitive (bool): Whether to represent structure as primitive into function.
+        
+    Returns:
+        ibrav_celldm_dictionary (dict): Dictionary containing ibrav and necessary celldm parameters for QE input files.
     """
 
     sga = SpacegroupAnalyzer(structure)
@@ -60,7 +68,6 @@ def get_ibrav_celldm(structure, get_primitive=True):
         print('ibrav for this structure is not supported yet, please manually specify ibrav and necessary celldm in parameter dictionary\n')
             
     return dict_
-
 
 class PWInput:
     """
