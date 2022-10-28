@@ -253,7 +253,7 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, y_min=None, y_max=None, sav
     ax.set_xlim(0,max(bands_df['recip']))
     ax.xaxis.set_visible(False)
     ax.set_ylabel('E-E$_{f}$ [eV]')
-    if savefig = True:
+    if savefig == True:
         plt.savefig(f'{save_dir}/{prefix}_bands.png')
     
     return bands_df

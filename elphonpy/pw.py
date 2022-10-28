@@ -2,6 +2,7 @@ import os
 import subprocess
 import numpy as np
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+from pymatgen.core.structure import IStructure
 from elphonpy.pseudo import get_pseudos
 
 # A portion of these functions were adapted from pymatgen.io.pwscf, whose author is Shyue Ping Ong. 
