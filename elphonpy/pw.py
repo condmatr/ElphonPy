@@ -69,6 +69,22 @@ def get_ibrav_celldm(structure, get_primitive=True):
             
     return dict_
 
+def to_str(v):
+    """
+    Conversion of scientific notation and booleans to QE scientific notation and booleans.
+    (i.e. e --> d, True --> .TRUE.)
+    """
+    if isinstance(v, str):
+        return f"'{v}'"
+    if isinstance(v, float):
+        return f"{str(v).replace('e', 'd')}"
+    if isinstance(v, bool):
+        if v:
+            return ".TRUE."
+        return ".FALSE."
+    return v
+
+
 class PWInput:
     """
     Base input file class. Right now, only supports no symmetry and is

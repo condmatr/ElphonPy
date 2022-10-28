@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from elphonpy.pseudo import get_pseudos
-from elphonpy.pw import get_ibrav_celldm, PWInput
+from elphonpy.pw import get_ibrav_celldm, PWInput, to_str
 from elphonpy.bands import get_simple_kpath
 
 def phonon_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_ph, multE=1.0, workdir='./phonons', copy_pseudo=False):
