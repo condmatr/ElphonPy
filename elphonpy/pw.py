@@ -75,8 +75,8 @@ def get_ibrav_celldm(structure, get_primitive=True):
                  'celldm(3)':lat.c/lat.a
                 }
     
-    else: 
-        print('ibrav for this structure is not supported yet, please manually specify ibrav and necessary celldm in parameter dictionary\n')
+    # else: 
+        # print('ibrav for this structure is not supported yet, please manually specify ibrav and necessary celldm in parameter dictionary\n')
             
     return dict_
 
