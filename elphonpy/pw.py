@@ -1,9 +1,19 @@
 import os
 import subprocess
+import re
+import shutil
+import json
 import numpy as np
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from pymatgen.core.structure import IStructure
 from elphonpy.pseudo import get_pseudos
+from collections import defaultdict
+from monty.io import zopen
+from monty.re import regrep
+from pymatgen.core.lattice import Lattice
+from pymatgen.core.periodic_table import Element
+from pymatgen.core.structure import Structure
+from pymatgen.util.io_utils import clean_lines
 
 # A portion of these functions were adapted from pymatgen.io.pwscf, whose author is Shyue Ping Ong. 
 
