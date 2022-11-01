@@ -1,7 +1,10 @@
 import re
+import os
 import subprocess
 import pandas as pd
-from elphonpy.pw import PWInput
+import numpy as np
+from elphonpy.pw import PWInput, get_ibrav_celldm
+from elphonpy.pseudo import get_pseudos
 
 
 def get_simple_kpath(structure, line_density=100):
@@ -40,10 +43,10 @@ def get_simple_kpath(structure, line_density=100):
             high_sym_dummy.append(i)
             if kp_high_sym_list[i] == 'GAMMA':
                 high_sym_symbol.append('$\Gamma$')
-                high_sym_kpt.append(kp_arrays[i].tolist())
+                high_sym_kpt.append(np.round(kp_arrays[i],4).tolist())
             else:
                 high_sym_symbol.append(kp_high_sym_list[i]) 
-                high_sym_kpt.append(kp_arrays[i].tolist())
+                high_sym_kpt.append(np.round(kp_arrays[i],4).tolist())
 
         if not np.array_equal(kp_arrays[i], kp_arrays[i-1]):
             kpt_out.append(kp_arrays[i].tolist())
@@ -52,7 +55,7 @@ def get_simple_kpath(structure, line_density=100):
 
     for i in range(len(kpt_out)):
         for j in kp_recip_list:
-            if np.allclose(np.array(kpt_out[i]), np.array(j), rtol=1e-05,atol=1e-08):
+            if np.allclose(np.array(kpt_out[i]), np.array(j), rtol=1e-08,atol=1e-08):
                 high_sym_idx.append(i)
                 
     
@@ -258,7 +261,7 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, y_min=None, y_max=None, sav
     
     return bands_df
 
-def wannier_windows_info(band_df, save_dir='./bands'):
+def wannier_windows_info(bands_df, fermi_e, save_dir='./bands'):
     """
     Saves a data file with fermi energy, and band minimum and band maximum for each band in band directory for ease of setting 
     wannier90 disentanglement windows in epw calculation step.
@@ -269,10 +272,11 @@ def wannier_windows_info(band_df, save_dir='./bands'):
         band_df (bool): Whether or not to save fig as png.
         savedir (str): path to save directory.
     """
-    
+       
     with open(f'{save_dir}/wannier_info.dat', 'w+') as f:
         f.write(f'Fermi Energy (SCF): {fermi_e}\n')
+        f.write(f'band#       min(eV)       max(eV)\n')
         for band in range(0, len(bands_df.columns)-1):
             band_min, band_max = np.min(bands_df[f'{band}'].values), np.max(bands_df[f'{band}'].values) 
-            f.write(f'band # {band+1} :: min (eV) {band_min:.5f}, max (eV) {band_max:.5f}\n')
+            f.write(f'{band+1}      {band_min:.5f}      {band_max:.5f}\n')
     f.close()

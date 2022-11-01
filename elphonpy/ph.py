@@ -44,14 +44,14 @@ def phonon_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_
                                system=pmd_scf['system'],kpoints_grid=pmd_scf['kpoint_grid'])
     
     scf_calc.write_file(f'{workdir}/{prefix}_scf.in')
-    print('SCF input file written to ./phonons')
+    print(f'SCF input file written to {workdir}')
     
     pmd_ph = param_dict_ph
     
     pmd_ph['inputph'].update({'prefix':f'{str(prefix).lower()}',
                                'fildyn':f'{str(prefix).lower()}.dyn'})
     
-    with open(f'./phonons/{prefix}_ph.in', 'w+') as f:
+    with open(f'{workdir}/{prefix}_ph.in', 'w+') as f:
         f.write('&inputph\n')
         for item in param_dict_ph['inputph'].items():
             f.write(f'  {item[0]}={to_str(item[1])}' + ',\n')

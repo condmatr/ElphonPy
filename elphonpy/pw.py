@@ -74,7 +74,15 @@ def get_ibrav_celldm(structure, get_primitive=True):
                  'celldm(1)':angs_to_bohr(lat.a),
                  'celldm(3)':lat.c/lat.a
                 }
-    
+    if crys_sys == 'triclinic':
+        angles = lat.angles
+        dict_ = {'ibrav':14,
+                 'celldm(1)':angs_to_bohr(lat.a),
+                 'celldm(2)': lat.b/lat.a,
+                 'celldm(3)': lat.c/lat.a,
+                 'celldm(4)': np.cos(angles[0]*(np.pi/180)),
+                 'celldm(5)': np.cos(angles[0]*(np.pi/180)),
+                 'celldm(6)': np.cos(angles[0]*(np.pi/180))}
     # else: 
         # print('ibrav for this structure is not supported yet, please manually specify ibrav and necessary celldm in parameter dictionary\n')
             
@@ -614,7 +622,7 @@ def scf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, workdir='
     
     pseudopotentials, min_ecutwfc, min_ecutrho = get_pseudos(structure, pseudo_dict, copy_pseudo=copy_pseudo)
     
-    if 'celldm(1)' and 'ibrav' not in pmd['system'].keys():
+    if 'ibrav' and 'celldm(1)' not in pmd['system'].keys():
         celldm_dict = get_ibrav_celldm(structure)
         pmd['system'].update(celldm_dict)
     
@@ -654,7 +662,7 @@ def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, workdir=
     
     pseudopotentials, min_ecutwfc, min_ecutrho = get_pseudos(structure, pseudo_dict, copy_pseudo=copy_pseudo)
     
-    if 'celldm(1)' and 'ibrav' not in pmd['system'].keys():
+    if 'ibrav' and 'celldm(1)' not in pmd['system'].keys():
         celldm_dict = get_ibrav_celldm(structure)
         pmd['system'].update(celldm_dict)
     
@@ -720,7 +728,7 @@ def relax_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, workdir
     
     pseudopotentials, min_ecutwfc, min_ecutrho = get_pseudos(structure, pseudo_dict, copy_pseudo=copy_pseudo)
     
-    if 'celldm(1)' and 'ibrav' not in pmd['system'].keys():
+    if 'ibrav' and 'celldm(1)' not in pmd['system'].keys():
         celldm_dict = get_ibrav_celldm(structure)
         pmd['system'].update(celldm_dict)
     
@@ -732,6 +740,8 @@ def relax_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, workdir
     relax_calc = PWInput(structure=structure, pseudo=pseudopotentials, control=pmd['control'],
                          electrons=pmd['electrons'], system=pmd['system'], cell=pmd['cell'],
                          kpoints_grid=pmd['kpoint_grid'], ions=pmd['ions'])
+    
+    relax_calc.write_file(f'./{workdir}/{prefix}_relax.in')
     
     
 def read_relax_output(prefix, workdir='./relax', out_filename=None, cif_dir=None, get_primitive=True):
@@ -759,8 +769,8 @@ def read_relax_output(prefix, workdir='./relax', out_filename=None, cif_dir=None
     else:
         save_cif_dir = cif_dir
         
-    cmd_1 = f"grep -A12 'Begin final coordinates' {workdir}/{prefix}_vcrelax.out | tail -13 | tee {workdir}/vc_relax_output.txt"
-    cmd_2 = f"pwo2xsf.sh -oc {workdir}/{prefix}_vcrelax.out | tee {workdir}/{prefix}_relaxed.xsf"
+    cmd_1 = f"grep -A12 'Begin final coordinates' {workdir}/{prefix}_relax.out | tail -13 | tee {workdir}/relax_output.txt"
+    cmd_2 = f"pwo2xsf.sh -oc {workdir}/{prefix}_relax.out | tee {workdir}/{prefix}_relaxed.xsf"
     cmd_3 = f"VESTA -nogui -i {workdir}/{prefix}_relaxed.xsf -o {save_cif_dir}/{filename}.cif"
     
     subprocess.run(cmd_1, shell=True, capture_output=True)

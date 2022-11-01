@@ -16,13 +16,13 @@ def epw_wdata(param_dict_epw, wannier_plot, kpath_dict):
     """
     wann_dict = param_dict_epw['wannier_data']
     wdata_list = []
-    j = 0
+    j = 1
     
     if wannier_plot == True:
 
-        j = 2
-        wdata_list.append("wdata(0) = 'bands_plot  = .TRUE.'")
-        wdata_list.append("wdata(1) = 'begin kpoint_path'")
+        j += 2
+        wdata_list.append("wdata(1) = 'bands_plot = .TRUE.'")
+        wdata_list.append("wdata(2) = 'begin kpoint_path'")
 
         for i in range(len(kpath_dict['path_kpoints'])-1):
 
@@ -79,20 +79,20 @@ def epw_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_nsc
     with open(f'{workdir}/{prefix}_epw.in', 'w+') as f:
         f.write('&inputepw\n')
         for item in param_dict_epw['inputepw'].items():
-            f.write(f'  {item[0]}={to_str(item[1])}' + ',\n')
+            f.write(f'  {item[0]} = {to_str(item[1])}' + '\n')
         f.write('\n')
         for item in wdata:
-            f.write(f'  {item}' + ',\n')
+            f.write(f'  {item}' + '\n')
         f.write('\n')
         for i, nk in enumerate(param_dict_epw['kq_grids']['k_coarse']):
-            f.write(f'  nk{i+1} = {nk}' + ',\n')
+            f.write(f'  nk{i+1} = {nk}' + '\n')
         for i, nq in enumerate(param_dict_epw['kq_grids']['q_coarse']):
-            f.write(f'  nq{i+1} = {nq}' + ',\n')
+            f.write(f'  nq{i+1} = {nq}' + '\n')
         for i, nkf in enumerate(param_dict_epw['kq_grids']['k_fine']):
-            f.write(f'  nkf{i+1} = {nkf}' + ',\n')
+            f.write(f'  nkf{i+1} = {nkf}' + '\n')
         for i, nqf in enumerate(param_dict_epw['kq_grids']['q_fine']):
-            f.write(f'  nqf{i+1} = {nqf}' + ',\n')
-        f.write('/')
+            f.write(f'  nqf{i+1} = {nqf}' + '\n')
+        f.write('/\n')
     f.close()
     
 def plot_wannier_dft_bands(prefix, band_kpath_dict, fermi_e=0, bands_dir='./bands', wann_dir='./epw', savefig=True):    
@@ -114,6 +114,7 @@ def plot_wannier_dft_bands(prefix, band_kpath_dict, fermi_e=0, bands_dir='./band
     """
     
     import matplotlib.pyplot as plt
+    import pandas as pd
     fig, ax = plt.subplots(figsize=[4,3], dpi=300)
     bands_df = pd.read_json(f'{bands_dir}/bands_reformatted.json')
     wann_bands_df = pd.read_csv(f'{wann_dir}/{prefix}_band.dat', delim_whitespace=True, names=['recip', 'band_data'])
@@ -124,8 +125,8 @@ def plot_wannier_dft_bands(prefix, band_kpath_dict, fermi_e=0, bands_dir='./band
     y_min = min(bands_df.values[:,0])
     y_max = min(bands_df.values[:,-1])
     
-    for i, high_sym in enumerate(kpath_dict['path_symbols']):
-        sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
+    for i, high_sym in enumerate(band_kpath_dict['path_symbols']):
+        sym_idx = band_kpath_dict['path_idx_wrt_kpt'][i]
         x_sym = bands_df['recip'].iloc[sym_idx]
         ax.vlines(x_sym, ymin=y_min, ymax=y_max, lw=0.3, colors='k')
         ax.text(x_sym/max(bands_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=ax.transAxes)
