@@ -1,1 +1,1 @@
-__all__ = ["bands", "ph", "pseudo", "pw"]
+__all__ = ["bands", 'epw',  "ph", "pseudo", "pw" ]

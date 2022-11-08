@@ -155,13 +155,13 @@ def matdyn(prefix, structure, pseudo_dict, fc_file_str, line_density=100, workdi
         for i in out:
             f.write(i + ',\n')
         f.write('/' + '\n')
-        f.write(str(len(kp_out)) + '\n')
-        for i in range(len(kp_out)):
+        f.write(str(len(qpoints_out)) + '\n')
+        for i in range(len(qpoints_out)):
             qpi = qpoints_out[i]
             f.write(f'    {qpi[0]:.10f}  {qpi[1]:.10f}  {qpi[2]:.10f}' + ' 1\n')
     
     print(f'Saving matdyn.in file for calculation of phonon dispersion, this will output the phonon dispersion file {phonon_file_str}')
-    return amass_dict, kpath_dict
+    return amass_dict, qp_dict
             
 def plot_phonons(prefix, kpath_dict):
     """
@@ -180,7 +180,7 @@ def plot_phonons(prefix, kpath_dict):
     high_sym_symbol = kpath_dict['path_symbols']
     high_sym_idx = kpath_dict['path_idx_wrt_kpt']
 
-    rng = np.arange(1, int(len(list(df))))
+    rng = np.arange(1, int(len(list(phonons_df))))
     for i in rng:
         col_names.append(f'Mode_{i}')
     phonons_df.columns = col_names
@@ -195,20 +195,20 @@ def plot_phonons(prefix, kpath_dict):
         miny = mini+(0.2*mini)
     maxy = maxi + (0.2*maxi)
     
-    ax.axhline(0, xmin=0, xmax=max(df['High_sym']), c='k', ls='--', lw=0.5, alpha=0.5)
+    ax.axhline(0, xmin=0, xmax=max(phonons_df['High_sym']), c='k', ls='--', lw=0.5, alpha=0.5)
     j=0
-    for i in range(len(df['High_sym'])):
+    for i in range(len(phonons_df['High_sym'])+1):
         if i in high_sym_idx:
             ax.vlines(phonons_df['High_sym'].iloc[i], ymin=miny, ymax=maxy, lw=0.3, colors='k')
-            ax.text(phonons_df['High_sym'].iloc[i], -0.05, f'{high_sym_symbol[j]}', ha='center', va='center', transform=ax.transAxes)
+            ax.text(phonons_df['High_sym'].iloc[i]/max(phonons_df['High_sym']), -0.05, f'{high_sym_symbol[j]}', ha='center', va='center', transform=ax.transAxes)
             j+=1
 
     for i in rng:
-        ax.plot(phonons_df['High_sym'], phonons_df[f'Mode_{i}'], c='r', lw=0.5)
+        ax.plot(phonons_df['High_sym'], phonons_df[f'Mode_{i}'], c='b', lw=1)
     
-    ax.ylim(miny,maxy)
-    ax.xlim(0,max(phonons_df['High_sym']))
-    ax.xticks([])
+    ax.set_ylim(miny,maxy)
+    ax.set_xlim(0,max(phonons_df['High_sym']))
+    ax.set_xticks([])
 
     fig.savefig(f'phonons/{prefix}_phonons.png')
     

@@ -17,6 +17,9 @@ from pymatgen.util.io_utils import clean_lines
 
 # A portion of these functions were adapted from pymatgen.io.pwscf, whose author is Shyue Ping Ong. 
 
+def angs_to_bohr(lattice_param):
+    return lattice_param*1.88973
+
 def get_ibrav_celldm(structure, get_primitive=True):
     """
     Return the QE ibrav parameter for the space group of the system and define necessary lattice parameters in bohr radii to interface with QE
@@ -31,8 +34,6 @@ def get_ibrav_celldm(structure, get_primitive=True):
     """
 
     sga = SpacegroupAnalyzer(structure)
-    def angs_to_bohr(lattice_param):
-        return lattice_param*1.88973
     
     if get_primitive == True:
         structure = sga.find_primitive()
@@ -69,11 +70,13 @@ def get_ibrav_celldm(structure, get_primitive=True):
                  'celldm(1)':angs_to_bohr(lat.a),
                  'celldm(3)':lat.c/lat.a
                 }
+    
     if crys_sys == 'tetragonal' and sg_sym[0] == 'I':
         dict_ = {'ibrav':7,
                  'celldm(1)':angs_to_bohr(lat.a),
                  'celldm(3)':lat.c/lat.a
                 }
+
     if crys_sys == 'triclinic':
         angles = lat.angles
         dict_ = {'ibrav':14,
@@ -720,7 +723,7 @@ def relax_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, workdir
     """
     if workdir != './':
         try:
-            os.mkdir(workdir)
+            os.makedirs(workdir)
         except OSError as error:
             print(error)
         
