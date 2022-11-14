@@ -95,7 +95,7 @@ def epw_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_nsc
         f.write('/\n')
     f.close()
     
-def plot_wannier_dft_bands(prefix, band_kpath_dict, fermi_e=0, bands_dir='./bands', wann_dir='./epw', savefig=True):    
+def plot_wannier_dft_bands(prefix, band_kpath_dict, fermi_e=0, reduce_wann=1, bands_dir='./bands', wann_dir='./epw', savefig=True):    
     """
     Plots wannier tight-binding model band structure over top of DFT band structure for comparison.
 
@@ -132,7 +132,9 @@ def plot_wannier_dft_bands(prefix, band_kpath_dict, fermi_e=0, bands_dir='./band
         ax.text(x_sym/max(bands_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=ax.transAxes)
 
     ax.axhline(fermi_e, xmin=0, xmax=max(bands_df['recip']), c='k', ls='--', lw=0.5, alpha=0.5)
-
+    
+    wann_bands_df = wann_bands_df.iloc[::reduce_wann, :]
+    
     for idx in range(1,len(bands_df.columns)-1):
         ax.plot(bands_df['recip'], bands_df[f'{idx}'].values, lw=1, c='r', zorder=1)
     ax.scatter(wann_bands_df['recip']*factor, wann_bands_df['band_data'], s=0.05, c='k', zorder=2)
@@ -141,5 +143,6 @@ def plot_wannier_dft_bands(prefix, band_kpath_dict, fermi_e=0, bands_dir='./band
     ax.set_ylim(y_min_wann, y_max_wann)
     ax.xaxis.set_visible(False)
     ax.set_ylabel('Energy [eV]')
+    fig.tight_layout()
     if savefig == True:
         plt.savefig(f'{wann_dir}/{prefix}_DFT_wann_bands.png')

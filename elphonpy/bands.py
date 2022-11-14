@@ -243,6 +243,7 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, y_min=None, y_max=None, sav
         sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
         x_sym = bands_df['recip'].iloc[sym_idx]
         ax.vlines(x_sym, ymin=y_min, ymax=y_max, lw=0.3, colors='k')
+        ax.axhline(fermi_e, ls='dashed', c='k', lw=0.5 )
         ax.text(x_sym/max(bands_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=ax.transAxes)
 
     ax.axhline(0, xmin=0, xmax=max(bands_df['recip']), c='k', ls='--', lw=0.5, alpha=0.5)
@@ -255,7 +256,7 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, y_min=None, y_max=None, sav
     
     ax.set_xlim(0,max(bands_df['recip']))
     ax.xaxis.set_visible(False)
-    ax.set_ylabel('E-E$_{f}$ [eV]')
+    ax.set_ylabel('Energy [eV]')
     if savefig == True:
         plt.savefig(f'{save_dir}/{prefix}_bands.png')
     

@@ -98,7 +98,7 @@ def q2r(prefix, qlist, workdir='./phonons'):
         f.write('/' + '\n')
     return fc_file_str
     
-def matdyn(prefix, structure, pseudo_dict, fc_file_str, line_density=100, workdir='phonons'):
+def matdyn(prefix, structure, kpath_dict, pseudo_dict, fc_file_str, workdir='phonons'):
     
     """
     Prepares input file for QE matdyn.x calculation, writes input file to workdir. 
@@ -134,7 +134,7 @@ def matdyn(prefix, structure, pseudo_dict, fc_file_str, line_density=100, workdi
     
     phonon_file_str = matdyn_dict['flfrq']
     
-    qp_dict = get_simple_kpath(structure=structure, line_density=line_density)
+    qp_dict = kpath_dict
     
     qpoints_out = qp_dict['kpoints']
     
@@ -208,6 +208,7 @@ def plot_phonons(prefix, kpath_dict):
     
     ax.set_ylim(miny,maxy)
     ax.set_xlim(0,max(phonons_df['High_sym']))
+    ax.set_ylabel('Frequency [cm$^{-1}$]')
     ax.set_xticks([])
 
     fig.savefig(f'phonons/{prefix}_phonons.png')
