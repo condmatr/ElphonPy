@@ -11,7 +11,7 @@ sys.path.append('PATH-TO-ELPHONPY')
 ```
 
 Prerequisite packages:
-pymatgen, numpy, matplotlib.pyplot
+pymatgen, numpy, matplotlib.pyplot, pandas, scipy
 
 Programs that are used in some ElphonPy functions:
 
