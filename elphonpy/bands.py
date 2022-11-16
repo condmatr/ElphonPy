@@ -39,7 +39,9 @@ def get_simple_kpath(structure, line_density=100):
     for i in range(len(kp_arrays)):
         if kp_high_sym_list[i] != '' and kp_high_sym_list[i] != kp_high_sym_list[i-1]:
             if i-1 in high_sym_dummy:
-                break
+                high_sym_symbol.remove(high_sym_symbol[-1])
+                high_sym_symbol.append(f'{kp_high_sym_list[i-1]}|{kp_high_sym_list[i]}')
+                continue
             high_sym_dummy.append(i)
             if kp_high_sym_list[i] == 'GAMMA':
                 high_sym_symbol.append('$\Gamma$')
@@ -57,8 +59,7 @@ def get_simple_kpath(structure, line_density=100):
         for j in kp_recip_list:
             if np.allclose(np.array(kpt_out[i]), np.array(j), rtol=1e-08,atol=1e-08):
                 high_sym_idx.append(i)
-                
-    
+
     kpath_dict = {'path_symbols':high_sym_symbol,
                   'path_kpoints':high_sym_kpt,
                   'path_idx_wrt_kpt':high_sym_idx,

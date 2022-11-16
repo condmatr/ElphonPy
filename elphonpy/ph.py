@@ -210,7 +210,7 @@ def plot_phonons(prefix, kpath_dict):
     ax.set_xlim(0,max(phonons_df['High_sym']))
     ax.set_ylabel('Frequency [cm$^{-1}$]')
     ax.set_xticks([])
-
+    fig.tight_layout()
     fig.savefig(f'phonons/{prefix}_phonons.png')
     
     return phonons_df
