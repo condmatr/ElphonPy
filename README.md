@@ -2,7 +2,7 @@
 
 ## Tutorial & full documentation coming soon!
 
-Currently ElphonPy does not have a distributable, but this repository can be directly cloned to your home directory and import into your python files or Jupyter notebook as follows:
+Currently ElphonPy does not have a distributable, but this repository can be directly cloned to your home directory and imported into your python files or Jupyter notebook as follows:
 
 ```python
 import sys
