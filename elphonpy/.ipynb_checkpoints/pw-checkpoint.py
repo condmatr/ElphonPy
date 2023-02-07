@@ -782,7 +782,7 @@ def read_relax_output(prefix, workdir='./relax', out_filename=None, cif_dir=None
     subprocess.run(cmd_3, shell=True, capture_output=True)
    
     relaxed_cif_file = f'{save_cif_dir}/{filename}.cif'
-    relaxed_structure = IStructure.from_file(relaxed_cif_file, )
+    relaxed_structure = IStructure.from_file(relaxed_cif_file)
     
     if get_primitive == True:
         relaxed_structure = SpacegroupAnalyzer(relaxed_structure).find_primitive()
