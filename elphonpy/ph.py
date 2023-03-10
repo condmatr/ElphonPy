@@ -175,10 +175,7 @@ def plot_phonons(prefix, kpath_dict):
         phonons_dataframe (pandas.DataFrame): The data which the phonons are plotted.
     """
     phonons_df = pd.read_csv(f'phonons/{str.lower(prefix)}.freq.gp', delim_whitespace=True, header=None)
-    col_names = ['High_sym']
-
-    high_sym_symbol = kpath_dict['path_symbols']
-    high_sym_idx = kpath_dict['path_idx_wrt_kpt']
+    col_names = ['recip']
 
     rng = np.arange(1, int(len(list(phonons_df))))
     for i in rng:
@@ -195,19 +192,18 @@ def plot_phonons(prefix, kpath_dict):
         miny = mini+(0.2*mini)
     maxy = maxi + (0.2*maxi)
     
-    ax.axhline(0, xmin=0, xmax=max(phonons_df['High_sym']), c='k', ls='--', lw=0.5, alpha=0.5)
-    j=0
-    for i in range(len(phonons_df['High_sym'])+1):
-        if i in high_sym_idx:
-            ax.vlines(phonons_df['High_sym'].iloc[i], ymin=miny, ymax=maxy, lw=0.3, colors='k')
-            ax.text(phonons_df['High_sym'].iloc[i]/max(phonons_df['High_sym']), -0.05, f'{high_sym_symbol[j]}', ha='center', va='center', transform=ax.transAxes)
-            j+=1
+    ax.axhline(0, xmin=0, xmax=max(phonons_df['recip']), c='k', ls='--', lw=0.5, alpha=0.5)
+    for i, high_sym in enumerate(kpath_dict['path_symbols']):
+        sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
+        x_sym = phonons_df['recip'].iloc[sym_idx]
+        ax.vlines(x_sym, ymin=miny, ymax=maxy, lw=0.3, colors='k')
+        ax.text(x_sym/max(phonons_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=ax.transAxes)
 
     for i in rng:
-        ax.plot(phonons_df['High_sym'], phonons_df[f'Mode_{i}'], c='b', lw=1)
+        ax.plot(phonons_df['recip'], phonons_df[f'Mode_{i}'], c='b', lw=1)
     
     ax.set_ylim(miny,maxy)
-    ax.set_xlim(0,max(phonons_df['High_sym']))
+    ax.set_xlim(0,max(phonons_df['recip']))
     ax.set_ylabel('Frequency [cm$^{-1}$]')
     ax.set_xticks([])
     fig.tight_layout()

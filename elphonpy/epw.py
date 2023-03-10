@@ -95,7 +95,7 @@ def epw_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_nsc
         f.write('/\n')
     f.close()
     
-def plot_wannier_dft_bands(prefix, band_kpath_dict, fermi_e=0, reduce_wann=1, bands_dir='./bands', wann_dir='./epw', y_min=None, y_max=None, savefig=True):    
+def plot_wannier_dft_bands(prefix, band_kpath_dict, fermi_e=0, reduce_wann=1, bands_dir='./bands', wann_dir='./epw', y_min=None, y_max=None, savefig=True, s=0.05):    
     """
     Plots wannier tight-binding model band structure over top of DFT band structure for comparison.
 
@@ -144,7 +144,7 @@ def plot_wannier_dft_bands(prefix, band_kpath_dict, fermi_e=0, reduce_wann=1, ba
     
     for idx in range(1,len(bands_df.columns)-1):
         ax.plot(bands_df['recip'], bands_df[f'{idx}'].values, lw=1, c='r', zorder=1)
-    ax.scatter(wann_bands_df['recip']*factor, wann_bands_df['band_data'], s=0.05, c='k', zorder=2)
+    ax.scatter(wann_bands_df['recip']*factor, wann_bands_df['band_data'], s=s, c='k', zorder=2)
     
     ax.set_xlim(0,max(bands_df['recip']))
     ax.set_ylim(y_min_wann, y_max_wann)

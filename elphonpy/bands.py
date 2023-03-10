@@ -317,10 +317,10 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, y_min=None, y_max=None, sav
         sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
         x_sym = bands_df['recip'].iloc[sym_idx]
         ax.vlines(x_sym, ymin=y_min, ymax=y_max, lw=0.3, colors='k')
-        ax.axhline(fermi_e, ls='dashed', c='k', lw=0.5 )
         ax.text(x_sym/max(bands_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=ax.transAxes)
 
     ax.axhline(0, xmin=0, xmax=max(bands_df['recip']), c='k', ls='--', lw=0.5, alpha=0.5)
+    ax.axhline(fermi_e, ls='dashed', c='k', lw=0.5 )
 
     for idx in range(1,len(bands_df.columns)-1):
         ax.plot(bands_df['recip'], bands_df[f'{idx}'].values - fermi_e, lw=1, c='b')
