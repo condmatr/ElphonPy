@@ -601,7 +601,7 @@ def automatic_kppa(structure, kppa):
     return tuple(num_div)
         
 
-def scf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, workdir='./scf', copy_pseudo=True):
+def scf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=None, workdir='./scf',copy_pseudo=True):
     
     """
     Prepares input file for QE SCF calculation, writes input file to workdir. 
@@ -634,6 +634,9 @@ def scf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, workdir='
         pmd['system'].update({'ecutwfc':min_ecutwfc*multE})
     if 'ecutrho' not in pmd['system'].keys():
         pmd['system'].update({'ecutrho':min_ecutrho*multE})
+        if rhoe != None:
+            pmd['system'].update({'ecutrho':min_ecutwfc*multE*rhoe})
+
     
     scf_calc = PWInput(structure=structure, pseudo=pseudopotentials, control=pmd['control'],
                        electrons=pmd['electrons'], system=pmd['system'], cell=None,
@@ -643,7 +646,7 @@ def scf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, workdir='
     
     print(f'SCF input file written to {workdir}')
 
-def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, workdir='./nscf', copy_pseudo=True):
+def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, rhoe=None, workdir='./nscf', copy_pseudo=True):
     """
     Prepares input file for QE NSCF calculation, writes input file to workdir. 
 
@@ -674,6 +677,8 @@ def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, workdir=
         pmd['system'].update({'ecutwfc':min_ecutwfc*multE})
     if 'ecutrho' not in pmd['system'].keys():
         pmd['system'].update({'ecutrho':min_ecutrho*multE})
+        if rhoe != None:
+            pmd['system'].update({'ecutrho':min_ecutwfc*multE*rhoe})
     
     nscf_calc =  PWInput(structure=structure, pseudo=pseudopotentials,
                          control=pmd['control'], electrons=pmd['electrons'],
@@ -709,7 +714,7 @@ def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, workdir=
     
     print(f'NSCF input file written to {workdir}')
     
-def relax_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, workdir='./relax', copy_pseudo=True):
+def relax_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=None, workdir='./relax', copy_pseudo=True):
     """
     Prepares input file for QE NSCF calculation, writes input file to workdir. 
 
@@ -740,6 +745,8 @@ def relax_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, workdir
         pmd['system'].update({'ecutwfc':min_ecutwfc*multE})
     if 'ecutrho' not in pmd['system'].keys():
         pmd['system'].update({'ecutrho':min_ecutrho*multE})
+        if rhoe != None:
+            pmd['system'].update({'ecutrho':min_ecutwfc*multE*rhoe})
     
     relax_calc = PWInput(structure=structure, pseudo=pseudopotentials, control=pmd['control'],
                          electrons=pmd['electrons'], system=pmd['system'], cell=pmd['cell'],

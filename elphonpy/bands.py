@@ -141,7 +141,7 @@ def get_custom_kpath(structure, symbol_kpoints_dict, line_density=100):
     return kpath_dict
 
 
-def bands_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_bands, kpath_dict, multE=1.0, workdir='./bands', copy_pseudo=False):
+def bands_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_bands, kpath_dict, multE=1.0, rhoe=None, workdir='./bands', copy_pseudo=False):
     """
     Prepares input files for QE Bands calculation, writes input file to workdir. 
 
@@ -176,11 +176,15 @@ def bands_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_b
         pmd_scf['system'].update({'ecutwfc':min_ecutwfc*multE})
     if 'ecutrho' not in pmd_scf['system'].keys():
         pmd_scf['system'].update({'ecutrho':min_ecutrho*multE})
+        if rhoe != None:
+            pmd['system'].update({'ecutrho':min_ecutwfc*multE*rhoe})
 
     if 'ecutwfc' not in pmd_bands['system'].keys():
         pmd_bands['system'].update({'ecutwfc':min_ecutwfc*multE})
     if 'ecutrho' not in pmd_bands['system'].keys():
         pmd_bands['system'].update({'ecutrho':min_ecutrho*multE})
+        if rhoe != None:
+            pmd['system'].update({'ecutrho':min_ecutwfc*multE*rhoe})
 
     kp_out = kpath_dict['kpoints']
 
@@ -319,11 +323,12 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, y_min=None, y_max=None, sav
         ax.vlines(x_sym, ymin=y_min, ymax=y_max, lw=0.3, colors='k')
         ax.text(x_sym/max(bands_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=ax.transAxes)
 
-    ax.axhline(0, xmin=0, xmax=max(bands_df['recip']), c='k', ls='--', lw=0.5, alpha=0.5)
+    
+    #ax.axhline(0, xmin=0, xmax=max(bands_df['recip']), c='k', ls='--', lw=0.5, alpha=0.5)
     ax.axhline(fermi_e, ls='dashed', c='k', lw=0.5 )
 
     for idx in range(1,len(bands_df.columns)-1):
-        ax.plot(bands_df['recip'], bands_df[f'{idx}'].values - fermi_e, lw=1, c='b')
+        ax.plot(bands_df['recip'], bands_df[f'{idx}'].values, lw=1, c='b')
         
     if y_min != None and y_max != None:
         ax.set_ylim(y_min,y_max)
