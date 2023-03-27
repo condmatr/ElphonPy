@@ -29,8 +29,6 @@ def get_simple_kpath(structure, line_density=100):
     kp_arrays = kp[0]
     kp_high_sym_list = kp[1]
     
-    print(kp_high_sym_list)
-
     high_sym_dummy = []
     high_sym_idx = []
     high_sym_symbol = []
@@ -42,7 +40,6 @@ def get_simple_kpath(structure, line_density=100):
         if kp_high_sym_list[i] != '' and kp_high_sym_list[i] != kp_high_sym_list[i-1]:
             high_sym_dummy.append(i)
             if i-1 in high_sym_dummy:
-                print(high_sym_symbol[-1])
                 high_sym_symbol.remove(high_sym_symbol[-1])
                 high_sym_symbol.remove(high_sym_symbol[-1])
                 high_sym_symbol.append(f'{kp_high_sym_list[i-1]}|{kp_high_sym_list[i]}')
