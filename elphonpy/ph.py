@@ -6,7 +6,7 @@ from elphonpy.pseudo import get_pseudos
 from elphonpy.pw import get_ibrav_celldm, PWInput, to_str
 from elphonpy.bands import get_simple_kpath
 
-def phonon_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_ph, multE=1.0, workdir='./phonons', copy_pseudo=False):
+def phonon_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_ph, multE=1.0, rhoe=None, workdir='./phonons', copy_pseudo=False):
     """
     Prepares input file for QE Phonons calculation, writes input file to workdir. 
 
@@ -38,6 +38,8 @@ def phonon_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_
         pmd_scf['system'].update({'ecutwfc':min_ecutwfc*multE})
     if 'ecutrho' not in pmd_scf['system'].keys():
         pmd_scf['system'].update({'ecutrho':min_ecutrho*multE})
+        if rhoe != None:
+            pmd['system'].update({'ecutrho':min_ecutwfc*multE*rhoe})
     
     scf_calc = PWInput(structure=structure, pseudo=pseudopotentials,
                                control=pmd_scf['control'], electrons=pmd_scf['electrons'],
