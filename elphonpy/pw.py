@@ -87,10 +87,32 @@ def get_ibrav_celldm(structure, get_primitive=True):
                  'celldm(4)': np.cos(angles[0]*(np.pi/180)),
                  'celldm(5)': np.cos(angles[0]*(np.pi/180)),
                  'celldm(6)': np.cos(angles[0]*(np.pi/180))}
-    # else: 
-        # print('ibrav for this structure is not supported yet, please manually specify ibrav and necessary celldm in parameter dictionary\n')
             
     return dict_
+
+def get_cell_params(structure):
+    
+    """
+    Returns cell_parameters of input structure in angstrom, eg:
+    
+    CELL_PARAMETERS angstrom
+       3.337812083   0.000000000   0.000000000
+       0.000000000   6.714860814   0.033113024
+       0.000000000  -0.004333785  16.877820267
+       
+    Args:
+    structure (Pymatgen Structure or IStructure): Input structure.
+    
+    Returns:
+    out (list): list of strings for each line required in the CELL_PARAMETERS card for QE input.
+    """
+    
+    out = ["CELL_PARAMETERS angstrom"]
+    mat = structure.lattice.matrix
+    for i in range(3):
+        out.append(f"{mat[i,0]:>18.10f}{mat[i,1]:>18.10f}{mat[i,2]:>18.10f}")
+        
+    return out
 
 def to_str(v):
     """
@@ -259,8 +281,11 @@ class PWInput:
                 out.append(f" {' '.join(kpt_str)}")
         elif self.kpoints_mode == "gamma":
             pass
-        return "\n".join(out)
     
+        if self.sections["system"]["ibrav"] == 0:
+            for line in get_cell_params(self.structure):
+                out.append(line)
+        return "\n".join(out)
     def as_dict(self):
         """
         Create a dictionary representation of a PWInput object
@@ -625,8 +650,10 @@ def scf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=Non
     pmd = param_dict
     
     pseudopotentials, min_ecutwfc, min_ecutrho = get_pseudos(structure, pseudo_dict, copy_pseudo=copy_pseudo)
-    
-    if 'ibrav' and 'celldm(1)' not in pmd['system'].keys():
+    if pmd['system']['ibrav'] == 0:
+        cell_params = get_cell_params(structure)
+        
+    if 'ibrav' not in pmd['system'].keys() and 'celldm(1)' not in pmd['system'].keys():
         celldm_dict = get_ibrav_celldm(structure)
         pmd['system'].update(celldm_dict)
     
@@ -669,7 +696,7 @@ def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, rhoe=Non
     
     pseudopotentials, min_ecutwfc, min_ecutrho = get_pseudos(structure, pseudo_dict, copy_pseudo=copy_pseudo)
     
-    if 'ibrav' and 'celldm(1)' not in pmd['system'].keys():
+    if 'ibrav' not in pmd['system'].keys() and 'celldm(1)' not in pmd['system'].keys():
         celldm_dict = get_ibrav_celldm(structure)
         pmd['system'].update(celldm_dict)
     
@@ -736,8 +763,7 @@ def relax_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=N
     pmd = param_dict
     
     pseudopotentials, min_ecutwfc, min_ecutrho = get_pseudos(structure, pseudo_dict, copy_pseudo=copy_pseudo)
-    
-    if 'ibrav' and 'celldm(1)' not in pmd['system'].keys():
+    if 'ibrav' not in pmd['system'].keys() and 'celldm(1)' not in pmd['system'].keys():
         celldm_dict = get_ibrav_celldm(structure)
         pmd['system'].update(celldm_dict)
     
