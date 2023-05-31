@@ -121,14 +121,6 @@ def matdyn(prefix, structure, kpath_dict, pseudo_dict, fc_file_str, workdir='pho
     
     pseudopotentials = get_pseudos(structure, pseudo_dict, copy_pseudo=False)
     pseudopotentials = pseudopotentials[0]
-    atoms = sorted(list(pseudopotentials.keys()))
-    
-    amass_dict = dict()
-    
-    for i in range(len(atoms)):
-        imass = Element(atoms[i]).atomic_mass
-        imass_dict = {f'amass({i+1})':f'{str(imass)[:-3]}'}
-        amass_dict.update(imass_dict)
 
     matdyn_dict = {'asr':'simple',
                    'flfrq':f'{str.lower(prefix)}.freq'
@@ -148,9 +140,6 @@ def matdyn(prefix, structure, kpath_dict, pseudo_dict, fc_file_str, workdir='pho
     for i in list(matdyn_dict.keys()):
         out.append(f' {i}={to_str(matdyn_dict[i])}')
     
-    for i in list(amass_dict.keys()):
-        out.append(f' {i}={amass_dict[i]}')
-    
     filename = f'{workdir}/matdyn.in'
     with open(filename, "w") as f:
         f.write('&input' + '\n')
@@ -163,7 +152,6 @@ def matdyn(prefix, structure, kpath_dict, pseudo_dict, fc_file_str, workdir='pho
             f.write(f'    {qpi[0]:.10f}  {qpi[1]:.10f}  {qpi[2]:.10f}' + ' 1\n')
     
     print(f'Saving matdyn.in file for calculation of phonon dispersion, this will output the phonon dispersion file {phonon_file_str}')
-    return amass_dict, qp_dict
             
 def plot_phonons(prefix, kpath_dict):
     """

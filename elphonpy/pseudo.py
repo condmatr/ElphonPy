@@ -1,7 +1,7 @@
 import os 
 import shutil
 
-qe_pseudo_dir='/home/adam/qe-7.0/pslibrary.1.0.0/pbe/PSEUDOPOTENTIALS'
+qe_pseudo_dir='/home/adam/qe-7.2/pslibrary.1.0.0/pbe/PSEUDOPOTENTIALS'
 
 def get_pseudos(structure, pseudo_dict, copy_pseudo=True):
     

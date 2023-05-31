@@ -46,10 +46,10 @@ def get_simple_kpath(structure, line_density=100):
                 continue
             if kp_high_sym_list[i] == 'GAMMA':
                 high_sym_symbol.append('$\Gamma$')
-                high_sym_kpt.append(np.round(kp_arrays[i],4).tolist())
+                high_sym_kpt.append(np.round(kp_arrays[i],8).tolist())
             else:
                 high_sym_symbol.append(kp_high_sym_list[i]) 
-                high_sym_kpt.append(np.round(kp_arrays[i],4).tolist())
+                high_sym_kpt.append(np.round(kp_arrays[i],8).tolist())
 
         if not np.array_equal(kp_arrays[i], kp_arrays[i-1]):
             kpt_out.append(kp_arrays[i].tolist())
@@ -337,8 +337,9 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, y_min=None, y_max=None, sav
     ax.set_xlim(0,max(bands_df['recip']))
     ax.xaxis.set_visible(False)
     ax.set_ylabel('Energy [eV]')
+    fig.tight_layout()
     if savefig == True:
-        plt.savefig(f'{save_dir}/{prefix}_bands.png')
+        fig.savefig(f'{save_dir}/{prefix}_bands.png')
     
     return bands_df
 
