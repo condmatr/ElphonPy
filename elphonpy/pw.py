@@ -650,12 +650,13 @@ def scf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=Non
     pmd = param_dict
     
     pseudopotentials, min_ecutwfc, min_ecutrho = get_pseudos(structure, pseudo_dict, copy_pseudo=copy_pseudo)
-    if pmd['system']['ibrav'] == 0:
-        cell_params = get_cell_params(structure)
         
     if 'ibrav' not in pmd['system'].keys() and 'celldm(1)' not in pmd['system'].keys():
         celldm_dict = get_ibrav_celldm(structure)
         pmd['system'].update(celldm_dict)
+    
+    if pmd['system']['ibrav'] == 0:
+        cell_params = get_cell_params(structure)
     
     if 'ecutwfc' not in pmd['system'].keys():
         pmd['system'].update({'ecutwfc':min_ecutwfc*multE})
@@ -700,6 +701,9 @@ def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, rhoe=Non
         celldm_dict = get_ibrav_celldm(structure)
         pmd['system'].update(celldm_dict)
     
+    if pmd['system']['ibrav'] == 0:
+        cell_params = get_cell_params(structure)
+    
     if 'ecutwfc' not in pmd['system'].keys():
         pmd['system'].update({'ecutwfc':min_ecutwfc*multE})
     if 'ecutrho' not in pmd['system'].keys():
@@ -707,43 +711,51 @@ def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, rhoe=Non
         if rhoe != None:
             pmd['system'].update({'ecutrho':min_ecutwfc*multE*rhoe})
     
-    nscf_calc =  PWInput(structure=structure, pseudo=pseudopotentials,
-                         control=pmd['control'], electrons=pmd['electrons'],
-                         system=pmd['system'])
-    nscf_calc.write_file('nscf.temp')
-    
-    with open('nscf.temp', 'r+') as f:
-        temp = f.readlines()[:-2]
-    f.close()
-    
-    def dense_k(kg0, kg1, kg2):
+    if 'kpoints_mode' in pmd.keys() and pmd['kpoints_mode'] == 'gamma':
         
-        tot = kg0*kg1*kg2
-        dense_k = []
-        for ii in range(kg0):
-            for jj in range(kg1):
-                for kk in range(kg2):
-                    dense_k.append([ii/kg0,jj/kg1,kk/kg2])
+        nscf_calc = PWInput(structure=structure, pseudo=pseudopotentials,
+                            control=pmd['control'], electrons=pmd['electrons'],
+                            system=pmd['system'],kpoints_mode=pmd['kpoints_mode'])
+        nscf_calc.write_file(f'{workdir}/{prefix}_nscf.in')
     
-        return dense_k, tot
+    else:
+        nscf_calc =  PWInput(structure=structure, pseudo=pseudopotentials,
+                             control=pmd['control'], electrons=pmd['electrons'],
+                             system=pmd['system'])
+        nscf_calc.write_file(f'{workdir}/nscf.temp')
 
-    dense_k_grid, total_k = dense_k(pmd['kpoint_grid'][0], pmd['kpoint_grid'][1], pmd['kpoint_grid'][2])
-    
-    with open(f'{workdir}/{prefix}_nscf.in', 'w') as f:
-        for i in temp:
-            f.write(i)
+        with open(f'{workdir}/nscf.temp', 'r+') as f:
+            temp = f.readlines()[:-2]
+        f.close()
 
-        f.write('K_POINTS crystal\n')
-        f.write(f'{total_k}\n')
-        for i in dense_k_grid:
-            f.write(f'  {i[0]:.8f}  {i[1]:.8f}  {i[2]:.8f}  {1/total_k:.4e}\n')
-    f.close()
+        def dense_k(kg0, kg1, kg2):
+
+            tot = kg0*kg1*kg2
+            dense_k = []
+            for ii in range(kg0):
+                for jj in range(kg1):
+                    for kk in range(kg2):
+                        dense_k.append([ii/kg0,jj/kg1,kk/kg2])
+
+            return dense_k, tot
+
+        dense_k_grid, total_k = dense_k(pmd['kpoint_grid'][0], pmd['kpoint_grid'][1], pmd['kpoint_grid'][2])
+
+        with open(f'{workdir}/{prefix}_nscf.in', 'w') as f:
+            for i in temp:
+                f.write(i)
+
+            f.write('K_POINTS crystal\n')
+            f.write(f'{total_k}\n')
+            for i in dense_k_grid:
+                f.write(f'  {i[0]:.8f}  {i[1]:.8f}  {i[2]:.8f}  {1/total_k:.4e}\n')
+        f.close()
     
     print(f'NSCF input file written to {workdir}')
     
 def relax_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=None, workdir='./relax', copy_pseudo=True):
     """
-    Prepares input file for QE NSCF calculation, writes input file to workdir. 
+    Prepares input file for QE SCF Relax calculation, writes input file to workdir. 
 
     Args:
         prefix (str): prefix of input/output files for scf calculations.
@@ -766,6 +778,9 @@ def relax_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=N
     if 'ibrav' not in pmd['system'].keys() and 'celldm(1)' not in pmd['system'].keys():
         celldm_dict = get_ibrav_celldm(structure)
         pmd['system'].update(celldm_dict)
+        
+    if pmd['system']['ibrav'] == 0:
+        cell_params = get_cell_params(structure)
     
     if 'ecutwfc' not in pmd['system'].keys():
         pmd['system'].update({'ecutwfc':min_ecutwfc*multE})
