@@ -725,7 +725,10 @@ def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, rhoe=Non
         nscf_calc.write_file(f'{workdir}/nscf.temp')
 
         with open(f'{workdir}/nscf.temp', 'r+') as f:
-            temp = f.readlines()[:-2]
+            temp = f.readlines()
+            for i, line in enumerate(temp):
+                if "K_POINTS" in line:
+                    temp = temp[:i] + temp[i+2:]
         f.close()
 
         def dense_k(kg0, kg1, kg2):
@@ -745,7 +748,7 @@ def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, rhoe=Non
             for i in temp:
                 f.write(i)
 
-            f.write('K_POINTS crystal\n')
+            f.write('\nK_POINTS crystal\n')
             f.write(f'{total_k}\n')
             for i in dense_k_grid:
                 f.write(f'  {i[0]:.8f}  {i[1]:.8f}  {i[2]:.8f}  {1/total_k:.4e}\n')
