@@ -7,6 +7,44 @@ from elphonpy.pw import PWInput, get_ibrav_celldm
 from elphonpy.pseudo import get_pseudos
 
 
+def distance_kpt_spacing(high_sym_kpoints, line_density):
+    kpath = []
+    sym_kpt_idx = []
+    idx = 0
+    for i in range(len(high_sym_kpoints)-1):
+        num_pts = np.int64(np.round(line_density*np.linalg.norm(high_sym_kpoints[i] - high_sym_kpoints[i+1]),0))
+        kpoints = np.linspace(high_sym_kpoints[i], high_sym_kpoints[i+1], num_pts)
+        if i == 0:
+            kpath = kpath + kpoints.tolist()
+            sym_kpt_idx.append(idx)
+            idx += num_pts
+            sym_kpt_idx.append(idx)
+        else:
+            kpath = kpath + kpoints[1:].tolist()
+            idx += num_pts-1
+            sym_kpt_idx.append(idx)
+    
+    return kpath, sym_kpt_idx
+
+def distance_kpt_spacing(high_sym_kpoints, line_density):
+    kpath = []
+    sym_kpt_idx = []
+    idx = 0
+    for i in range(len(high_sym_kpoints)-1):
+        num_pts = np.int64(np.round(line_density*np.linalg.norm(high_sym_kpoints[i] - high_sym_kpoints[i+1]),0))
+        kpoints = np.linspace(high_sym_kpoints[i], high_sym_kpoints[i+1], num_pts)
+        if i == 0:
+            kpath = kpath + kpoints.tolist()
+            sym_kpt_idx.append(idx)
+            idx += num_pts-1
+            sym_kpt_idx.append(idx)
+        else:
+            kpath = kpath + kpoints[1:].tolist()
+            idx += num_pts-1
+            sym_kpt_idx.append(idx)
+    
+    return kpath, sym_kpt_idx
+
 def get_simple_kpath(structure, line_density=100):
     """
     Creates kpath for desired structure using SeeKPath, outputs kpath dictionary. 
@@ -21,59 +59,35 @@ def get_simple_kpath(structure, line_density=100):
     from pymatgen.symmetry.kpath import KPathSeek as seekpath
     import numpy as np
     skp = seekpath(structure, symprec=0.01)
-    kp = skp.get_kpoints(line_density=line_density, coords_are_cartesian=False)
-
-    path = skp.kpath
-    kp_recip_list = list(path['kpoints'].values())
-
-    kp_arrays = kp[0]
-    kp_high_sym_list = kp[1]
+    kpath = skp.kpath
+    print(kpath)
     
-    high_sym_dummy = []
-    high_sym_idx = []
-    high_sym_symbol = []
-    high_sym_kpt = []
-
-    kpt_out = []
-
-    for i in range(len(kp_arrays)):
-        if kp_high_sym_list[i] != '' and kp_high_sym_list[i] != kp_high_sym_list[i-1]:
-            high_sym_dummy.append(i)
-            if i-1 in high_sym_dummy:
-                high_sym_symbol.remove(high_sym_symbol[-1])
-                high_sym_symbol.remove(high_sym_symbol[-1])
-                high_sym_symbol.append(f'{kp_high_sym_list[i-1]}|{kp_high_sym_list[i]}')
-                continue
-            if kp_high_sym_list[i] == 'GAMMA':
-                high_sym_symbol.append('$\Gamma$')
-                high_sym_kpt.append(np.round(kp_arrays[i],8).tolist())
-            else:
-                high_sym_symbol.append(kp_high_sym_list[i]) 
-                high_sym_kpt.append(np.round(kp_arrays[i],8).tolist())
-
-        if not np.array_equal(kp_arrays[i], kp_arrays[i-1]):
-            kpt_out.append(kp_arrays[i].tolist())
-        else:
-            continue
-
-    for i in range(len(kpt_out)):
-        for j in kp_recip_list:
-            if np.allclose(np.array(kpt_out[i]), np.array(j), rtol=1e-08,atol=1e-08):
-                high_sym_idx.append(i)
-
-    kpath_dict = {'path_symbols':high_sym_symbol,
-                  'path_kpoints':high_sym_kpt,
-                  'path_idx_wrt_kpt':high_sym_idx,
-                  'kpoints':kpt_out}
+    sym_kpt_list = []
+    
+    for sym in kpath['path'][0]:
+        sym_kpt_list.append(kpath['kpoints'][sym])
+        
+    high_sym_kpoints = np.array(sym_kpt_list)
+        
+    kpoint_list, sym_idx = distance_kpt_spacing(high_sym_kpoints, line_density)
+    sym_list = kpath['path'][0]
+    
+    for i in range(len(sym_list)):
+        if sym_list[i] == 'GAMMA':
+            sym_list[i] = '$\Gamma$'
+            
+    kpath_dict = {'path_symbols':sym_list,
+                  'path_kpoints':sym_kpt_list,
+                  'path_idx_wrt_kpt':sym_idx,
+                  'kpoints':kpoint_list}
     
     return kpath_dict
 
-def get_custom_kpath(structure, symbol_kpoints_dict, line_density=100):
+def get_custom_kpath(symbol_kpoints_dict, line_density=100):
     """
-    Creates kpath for desired structure using SeeKPath, outputs kpath dictionary. 
+    Creates kpath for desired structure using custom kpath, outputs kpath dictionary. 
 
     Args:
-        structure (Pymatgen Structure or IStructure): Input structure.
         symbol_kpoints_dict (dict): A dictionary containing 'path_symbols':a list of symbol strings.
                                                             'path_kpoints':a list of path kpoints.  
         e.g.
@@ -90,57 +104,23 @@ def get_custom_kpath(structure, symbol_kpoints_dict, line_density=100):
     Returns:
         kpath_dict (dict): Dictionary containing kpath information.
     """
-    import numpy as np
     
-    recip_lat = structure.lattice.reciprocal_lattice
-
-    kpoints = np.array(symbol_kpoints_dict['path_kpoints'])
-
-    all_kp = []
-
-    for i in range(len(kpoints)-1):
-
-        kpi = kpoints[i]
-        kpf = kpoints[i+1]
-
-        weight = round(recip_lat.get_all_distances(kpi, kpf)[0][0]*line_density)
-
-        kp_section = np.concatenate((np.linspace(kpi[0], kpf[0], weight).reshape(-1,1), np.linspace(kpi[1],kpf[1], weight).reshape(-1,1), np.linspace(kpi[2],kpf[2], weight).reshape(-1,1)), axis=1)
-        all_kp.append(kp_section)
-
-    kp_arrays = np.vstack(all_kp)
-
-    kp_sym = symbol_kpoints_dict['path_symbols']
-    path_kp = symbol_kpoints_dict['path_kpoints']
-    kp_sym_idx = []
-    kpt_out = []
-
-    j = 0
-    for i in range(len(kp_arrays)-1):
-
-        kpt = kp_arrays[i]
-
-        if not np.allclose(kpt, kp_arrays[i+1], rtol=1e-08,atol=1e-08):
-            kpt_out.append(kpt.tolist())
-            # print(True)
-        if np.allclose(kpt, path_kp[j], rtol=1e-08,atol=1e-08):
-            # print(kpt)
-            if i == 0:
-                kp_sym_idx.append(0)
-            else:
-                kp_sym_idx.append(i-j+1)
-            j+=1
-
-    kp_sym_idx.append(len(kp_arrays)-j)
-    kpt_out.append(kp_arrays[-1].tolist())
-
-    kpath_dict = {'path_symbols':kp_sym,
-                  'path_kpoints':path_kp,
-                  'path_idx_wrt_kpt':kp_sym_idx,
-                  'kpoints':kpt_out}
+    sym_list = symbol_kpoints_dict['path_symbols']
+    sym_kpt_list = symbol_kpoints_dict['path_kpoints']
+    high_sym_kpoints = np.array(sym_kpt_list)
+        
+    kpoint_list, sym_idx = distance_kpt_spacing(high_sym_kpoints, line_density)
+    
+    for i in range(len(sym_list)):
+        if sym_list[i] == 'GAMMA':
+            sym_list[i] = '$\Gamma$'
+        
+    kpath_dict = {'path_symbols':sym_list,
+                  'path_kpoints':sym_kpt_list,
+                  'path_idx_wrt_kpt':sym_idx,
+                  'kpoints':kpoint_list}
     
     return kpath_dict
-
 
 def bands_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_bands, kpath_dict, multE=1.0, rhoe=None, workdir='./bands', copy_pseudo=False):
     """
