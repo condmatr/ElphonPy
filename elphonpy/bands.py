@@ -17,77 +17,98 @@ def distance_kpt_spacing(high_sym_kpoints, line_density):
         if i == 0:
             kpath = kpath + kpoints.tolist()
             sym_kpt_idx.append(idx)
-            idx += num_pts
+            idx += num_pts + 1
             sym_kpt_idx.append(idx)
         else:
             kpath = kpath + kpoints[1:].tolist()
-            idx += num_pts-1
+            idx += num_pts - 1
             sym_kpt_idx.append(idx)
-    
-    return kpath, sym_kpt_idx
 
-def distance_kpt_spacing(high_sym_kpoints, line_density):
-    kpath = []
-    sym_kpt_idx = []
-    idx = 0
-    for i in range(len(high_sym_kpoints)-1):
-        num_pts = np.int64(np.round(line_density*np.linalg.norm(high_sym_kpoints[i] - high_sym_kpoints[i+1]),0))
-        kpoints = np.linspace(high_sym_kpoints[i], high_sym_kpoints[i+1], num_pts)
-        if i == 0:
-            kpath = kpath + kpoints.tolist()
-            sym_kpt_idx.append(idx)
-            idx += num_pts-1
-            sym_kpt_idx.append(idx)
-        else:
-            kpath = kpath + kpoints[1:].tolist()
-            idx += num_pts-1
-            sym_kpt_idx.append(idx)
-    
     return kpath, sym_kpt_idx
 
 def get_simple_kpath(structure, line_density=100):
     """
-    Creates kpath for desired structure using SeeKPath, outputs kpath dictionary. 
+    Creates kpath for desired structure using SeeKPath, outputs kpath dictionary.
 
     Args:
-        structure (Pymatgen Structure or IStructure): Input structure.
+	structure (Pymatgen Structure or IStructure): Input structure.
         line_density (float): density of points along path per reciprocal unit distance.
-        
+
     Returns:
-        kpath_dict (dict): Dictionary containing kpath information.
+	kpath_dict (dict): Dictionary containing kpath information.
     """
     from pymatgen.symmetry.kpath import KPathSeek as seekpath
     import numpy as np
     skp = seekpath(structure, symprec=0.01)
     kpath = skp.kpath
-    print(kpath)
-    
+
     sym_kpt_list = []
-    
+
     for sym in kpath['path'][0]:
         sym_kpt_list.append(kpath['kpoints'][sym])
-        
+
     high_sym_kpoints = np.array(sym_kpt_list)
-        
+
     kpoint_list, sym_idx = distance_kpt_spacing(high_sym_kpoints, line_density)
     sym_list = kpath['path'][0]
-    
+
     for i in range(len(sym_list)):
         if sym_list[i] == 'GAMMA':
             sym_list[i] = '$\Gamma$'
-            
+
     kpath_dict = {'path_symbols':sym_list,
                   'path_kpoints':sym_kpt_list,
                   'path_idx_wrt_kpt':sym_idx,
                   'kpoints':kpoint_list}
-    
+
     return kpath_dict
 
-def get_custom_kpath(symbol_kpoints_dict, line_density=100):
+
+# def get_custom_kpath(symbol_kpoints_dict, line_density=100):
+#     """
+#     Creates kpath for desired structure using custom kpath, outputs kpath dictionary. 
+
+#     Args:
+#         symbol_kpoints_dict (dict): A dictionary containing 'path_symbols':a list of symbol strings.
+#                                                             'path_kpoints':a list of path kpoints.  
+#         e.g.
+#         symbol_kpoints_dict = {'path_symbols':['W','L','$\Gamma$','X','W','K'],
+#                                'path_kpoints':[[0.500, 0.250, 0.750],
+#                                                [0.500, 0.500, 0.500],
+#                                                [0.000, 0.000, 0.000],
+#                                                [0.500, 0.000, 0.500],
+#                                                [0.500, 0.250, 0.750],
+#                                                [0.625, 0.250, 0.625]
+#                                               ]}
+#         line_density (float): density of points along path per reciprocal unit distance.
+        
+#     Returns:
+#         kpath_dict (dict): Dictionary containing kpath information.
+#     """
+    
+#     sym_list = symbol_kpoints_dict['path_symbols']
+#     sym_kpt_list = symbol_kpoints_dict['path_kpoints']
+#     high_sym_kpoints = np.array(sym_kpt_list)
+        
+#     kpoint_list, sym_idx = distance_kpt_spacing(high_sym_kpoints, line_density)
+    
+#     for i in range(len(sym_list)):
+#         if sym_list[i] == 'GAMMA':
+#             sym_list[i] = '$\Gamma$'
+        
+#     kpath_dict = {'path_symbols':sym_list,
+#                   'path_kpoints':sym_kpt_list,
+#                   'path_idx_wrt_kpt':sym_idx,
+#                   'kpoints':kpoint_list}
+    
+#     return kpath_dict
+
+def get_custom_kpath(structure, symbol_kpoints_dict, line_density=100):
     """
-    Creates kpath for desired structure using custom kpath, outputs kpath dictionary. 
+    Creates kpath for desired structure using SeeKPath, outputs kpath dictionary. 
 
     Args:
+        structure (Pymatgen Structure or IStructure): Input structure.
         symbol_kpoints_dict (dict): A dictionary containing 'path_symbols':a list of symbol strings.
                                                             'path_kpoints':a list of path kpoints.  
         e.g.
@@ -104,23 +125,57 @@ def get_custom_kpath(symbol_kpoints_dict, line_density=100):
     Returns:
         kpath_dict (dict): Dictionary containing kpath information.
     """
+    import numpy as np
     
-    sym_list = symbol_kpoints_dict['path_symbols']
-    sym_kpt_list = symbol_kpoints_dict['path_kpoints']
-    high_sym_kpoints = np.array(sym_kpt_list)
-        
-    kpoint_list, sym_idx = distance_kpt_spacing(high_sym_kpoints, line_density)
-    
-    for i in range(len(sym_list)):
-        if sym_list[i] == 'GAMMA':
-            sym_list[i] = '$\Gamma$'
-        
-    kpath_dict = {'path_symbols':sym_list,
-                  'path_kpoints':sym_kpt_list,
-                  'path_idx_wrt_kpt':sym_idx,
-                  'kpoints':kpoint_list}
+    recip_lat = structure.lattice.reciprocal_lattice
+
+    kpoints = np.array(symbol_kpoints_dict['path_kpoints'])
+
+    all_kp = []
+
+    for i in range(len(kpoints)-1):
+
+        kpi = kpoints[i]
+        kpf = kpoints[i+1]
+
+        weight = round(recip_lat.get_all_distances(kpi, kpf)[0][0]*line_density)
+
+        kp_section = np.concatenate((np.linspace(kpi[0], kpf[0], weight).reshape(-1,1), np.linspace(kpi[1],kpf[1], weight).reshape(-1,1), np.linspace(kpi[2],kpf[2], weight).reshape(-1,1)), axis=1)
+        all_kp.append(kp_section)
+
+    kp_arrays = np.vstack(all_kp)
+
+    kp_sym = symbol_kpoints_dict['path_symbols']
+    path_kp = symbol_kpoints_dict['path_kpoints']
+    kp_sym_idx = []
+    kpt_out = []
+
+    j = 0
+    for i in range(len(kp_arrays)-1):
+
+        kpt = kp_arrays[i]
+
+        if not np.allclose(kpt, kp_arrays[i+1], rtol=1e-08,atol=1e-08):
+            kpt_out.append(kpt.tolist())
+            # print(True)
+        if np.allclose(kpt, path_kp[j], rtol=1e-08,atol=1e-08):
+            # print(kpt)
+            if i == 0:
+                kp_sym_idx.append(0)
+            else:
+                kp_sym_idx.append(i-j+1)
+            j+=1
+
+    kp_sym_idx.append(len(kp_arrays)-j)
+    kpt_out.append(kp_arrays[-1].tolist())
+
+    kpath_dict = {'path_symbols':kp_sym,
+                  'path_kpoints':path_kp,
+                  'path_idx_wrt_kpt':kp_sym_idx,
+                  'kpoints':kpt_out}
     
     return kpath_dict
+
 
 def bands_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_bands, kpath_dict, multE=1.0, rhoe=None, workdir='./bands', copy_pseudo=False):
     """
@@ -286,8 +341,8 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, y_min=None, y_max=None, sav
         filband (str): Path to directory and filename for filband file output from bands.x calculation.
         kpath_dict (dict): dict generated by elphonpy.bands.get_simple_kpath , or modified to similar standard.
         fermi_e (float): Fermi energy in eV.
-        y_min (float): minimum energy to plot. (optional, default=bands_min)
-        y_max (float): maximum energy to plot. (optional, default=bands_max)
+        y_min (float): minimum energy to plot wrt fermi energy. [eV] (optional, default=bands_min)
+        y_max (float): maximum energy to plot wrt fermi energy. [eV] (optional, default=bands_max)
         savefig (bool): Whether or not to save fig as png.
         savedir (str): path to save directory if savefig == True. (default=./bands)
 
@@ -309,7 +364,7 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, y_min=None, y_max=None, sav
     ax.axhline(fermi_e, ls='dashed', c='k', lw=0.5 )
 
     for idx in range(1,len(bands_df.columns)-1):
-        ax.plot(bands_df['recip'], bands_df[f'{idx}'].values, lw=1, c='b')
+        ax.plot(bands_df['recip'], bands_df[f'{idx}'].values - fermi_e, lw=1, c='b')
         
     if y_min != None and y_max != None:
         ax.set_ylim(y_min,y_max)
