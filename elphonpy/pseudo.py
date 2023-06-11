@@ -49,3 +49,10 @@ def get_pseudos(structure, pseudo_dict, copy_pseudo=True):
         print('Copied pseudopotentials to ./pseudo')
     
     return pseudopotentials, min_ecutwfc, min_ecutrho
+
+def get_num_valence(structure, pseudo_dict):
+    num_valence = 0
+    for site in structure.sites:
+        num_valence += pseudo_dict[str(site.specie)]['num_valence']
+        
+    return num_valence
