@@ -132,8 +132,7 @@ def to_str(v):
 
 class PWInput:
     """
-    Base input file class. Right now, only supports no symmetry and is
-    very basic.
+    Base input file class.
     """
 
     def __init__(
@@ -601,10 +600,28 @@ class PWInput:
         if m:
             return m.group(1)
         
+def kpt_res_grid(structure, res):
+    """
+    Calculates kpoint grid resolution in units 1/A.
+    
+    Args:
+        structure (Pymatgen Structure or IStructure): Input structure.
+        res (float) : Desired kpoint resolution (1/A).
+    
+    Returns:
+        kpoint_grid (list) : kpoint grid for given structure and resolution
+    """
+    
+    i = structure.lattice.reciprocal_lattice.a
+    j = structure.lattice.reciprocal_lattice.b
+    k = structure.lattice.reciprocal_lattice.c
+    
+    return [round(i/res), round(j/res), round(k/res)]
+        
 def automatic_kppa(structure, kppa):
     
     """
-    Prepares input file for QE SCF calculation, writes input file to workdir. 
+    Calculates kpoint grid to match kppa resolution. 
 
     Args:
         structure (Pymatgen Structure or IStructure): Input structure.
@@ -626,7 +643,7 @@ def automatic_kppa(structure, kppa):
     return tuple(num_div)
         
 
-def scf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=None, workdir='./scf',copy_pseudo=True):
+def scf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=None, workdir='./scf',copy_pseudo=False):
     
     """
     Prepares input file for QE SCF calculation, writes input file to workdir. 
@@ -674,7 +691,7 @@ def scf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=Non
     
     print(f'SCF input file written to {workdir}')
 
-def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, rhoe=None, workdir='./nscf', copy_pseudo=True):
+def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, rhoe=None, workdir='./nscf', copy_pseudo=False):
     """
     Prepares input file for QE NSCF calculation, writes input file to workdir. 
 
@@ -756,7 +773,7 @@ def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, rhoe=Non
     
     print(f'NSCF input file written to {workdir}')
     
-def relax_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=None, workdir='./relax', copy_pseudo=True):
+def relax_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=None, workdir='./relax', copy_pseudo=False):
     """
     Prepares input file for QE SCF Relax calculation, writes input file to workdir. 
 
