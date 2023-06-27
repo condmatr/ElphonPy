@@ -132,7 +132,8 @@ def to_str(v):
 
 class PWInput:
     """
-    Base input file class.
+    Base input file class. Right now, only supports no symmetry and is
+    very basic.
     """
 
     def __init__(
@@ -691,7 +692,7 @@ def scf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=Non
     
     print(f'SCF input file written to {workdir}')
 
-def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, rhoe=None, workdir='./nscf', copy_pseudo=False):
+def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, rhoe=None, workdir='./nscf', copy_pseudo=True):
     """
     Prepares input file for QE NSCF calculation, writes input file to workdir. 
 
@@ -819,7 +820,7 @@ def relax_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=N
 def read_relax_output(prefix, workdir='./relax', out_filename=None, cif_dir=None, get_primitive=True):
     """
     Converts vcrelax.out file to XSF and then imports to VESTA to export to CIF 
-    *** Currently requires XCRYSDEN, and ~/path-to-qe-installation/PW/tools/pwo2xsf.sh to be accessible via command line interface ***
+    *** Currently requires XCRYSDEN, VESTA, and ~/path-to-qe-installation/PW/tools/pwo2xsf.sh to be accessible via command line interface ***
     
     Args:
         prefix (str): prefix of input/output files for relax_calculations

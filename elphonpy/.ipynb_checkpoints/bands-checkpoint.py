@@ -251,7 +251,7 @@ def bands_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_b
     with open(f'{workdir}/{prefix}_bands.in', 'w+') as f:
         for i in temp:
             f.write(i)
-        f.write('\nK_POINTS crystal\n')
+        f.write('K_POINTS crystal\n')
         f.write(f"{len(kp_out)}\n")
         for i in range(len(kp_out)):
             kpi = kp_out[i]
