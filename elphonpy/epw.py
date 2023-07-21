@@ -46,7 +46,8 @@ def epw_wdata(param_dict_epw, wannier_plot, kpath_dict):
         
     return wdata_list
 
-def epw_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_nscf, param_dict_epw, kpath_dict, wannier_plot=True, multE=1.0, workdir='./epw', copy_pseudo=False):
+def epw_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_nscf, param_dict_epw, kpath_dict,
+                  wannier_plot=True, multE=1.0, workdir='./epw', copy_pseudo=False, coarse_only=False):
     """
     Prepares input file for EPW calculation, writes input file to workdir. 
 
@@ -75,25 +76,74 @@ def epw_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_nsc
     pseudopotentials, min_ecutwfc, min_ecutrho = get_pseudos(structure, pseudo_dict, copy_pseudo=copy_pseudo)
     
     wdata = epw_wdata(param_dict_epw, wannier_plot, kpath_dict)
-    
-    with open(f'{workdir}/{prefix}_epw.in', 'w+') as f:
-        f.write('&inputepw\n')
-        for item in param_dict_epw['inputepw'].items():
-            f.write(f'  {item[0]} = {to_str(item[1])}' + '\n')
-        f.write('\n')
-        for item in wdata:
-            f.write(f'  {item}' + '\n')
-        f.write('\n')
-        for i, nk in enumerate(param_dict_epw['kq_grids']['k_coarse']):
-            f.write(f'  nk{i+1} = {nk}' + '\n')
-        for i, nq in enumerate(param_dict_epw['kq_grids']['q_coarse']):
-            f.write(f'  nq{i+1} = {nq}' + '\n')
-        for i, nkf in enumerate(param_dict_epw['kq_grids']['k_fine']):
-            f.write(f'  nkf{i+1} = {nkf}' + '\n')
-        for i, nqf in enumerate(param_dict_epw['kq_grids']['q_fine']):
-            f.write(f'  nqf{i+1} = {nqf}' + '\n')
-        f.write('/\n')
-    f.close()
+
+    if coarse_only == True:
+        param_dict_epw['inputepw'].update({'elph':True,
+                                           'epwwrite':True,
+                                           'epwread':False})
+        with open(f'{workdir}/{prefix}_epw_wann_coarse.in', 'w+') as f:
+            f.write('&inputepw\n')
+            for item in param_dict_epw['inputepw'].items():
+                f.write(f'  {item[0]} = {to_str(item[1])}' + '\n')
+            f.write('\n')
+            for item in wdata:
+                f.write(f'  {item}' + '\n')
+            f.write('\n')
+            for i, nk in enumerate(param_dict_epw['kq_grids']['k_coarse']):
+                f.write(f'  nk{i+1} = {nk}' + '\n')
+            for i, nq in enumerate(param_dict_epw['kq_grids']['q_coarse']):
+                f.write(f'  nq{i+1} = {nq}' + '\n')
+            for i, nkf in enumerate(param_dict_epw['kq_grids']['k_fine']):
+                f.write(f'  nkf{i+1} = {nkf}' + '\n')
+            for i, nqf in enumerate(param_dict_epw['kq_grids']['q_fine']):
+                f.write(f'  nqf{i+1} = {nqf}' + '\n')
+            f.write('/\n')
+        f.close()
+
+    else:
+        param_dict_epw['inputepw'].update({'elph':True,
+                                           'epwwrite':True,
+                                           'epwread':False})
+        with open(f'{workdir}/{prefix}_epw_wann_coarse.in', 'w+') as f:
+            f.write('&inputepw\n')
+            for item in param_dict_epw['inputepw'].items():
+                f.write(f'  {item[0]} = {to_str(item[1])}' + '\n')
+            f.write('\n')
+            for item in wdata:
+                f.write(f'  {item}' + '\n')
+            f.write('\n')
+            for i, nk in enumerate(param_dict_epw['kq_grids']['k_coarse']):
+                f.write(f'  nk{i+1} = {nk}' + '\n')
+            for i, nq in enumerate(param_dict_epw['kq_grids']['q_coarse']):
+                f.write(f'  nq{i+1} = {nq}' + '\n')
+            for i, nkf in enumerate(param_dict_epw['kq_grids']['k_fine']):
+                f.write(f'  nkf{i+1} = {nkf}' + '\n')
+            for i, nqf in enumerate(param_dict_epw['kq_grids']['q_fine']):
+                f.write(f'  nqf{i+1} = {nqf}' + '\n')
+            f.write('/\n')
+        f.close()
+        param_dict_epw['inputepw'].update({'elph':True,
+                                           'epwwrite':False,
+                                           'epwread':True})
+        with open(f'{workdir}/{prefix}_epw.in', 'w+') as f:
+            f.write('&inputepw\n')
+            for item in param_dict_epw['inputepw'].items():
+                f.write(f'  {item[0]} = {to_str(item[1])}' + '\n')
+            f.write('\n')
+            for item in wdata:
+                f.write(f'  {item}' + '\n')
+            f.write('\n')
+            for i, nk in enumerate(param_dict_epw['kq_grids']['k_coarse']):
+                f.write(f'  nk{i+1} = {nk}' + '\n')
+            for i, nq in enumerate(param_dict_epw['kq_grids']['q_coarse']):
+                f.write(f'  nq{i+1} = {nq}' + '\n')
+            for i, nkf in enumerate(param_dict_epw['kq_grids']['k_fine']):
+                f.write(f'  nkf{i+1} = {nkf}' + '\n')
+            for i, nqf in enumerate(param_dict_epw['kq_grids']['q_fine']):
+                f.write(f'  nqf{i+1} = {nqf}' + '\n')
+            f.write('/\n')
+        f.close()
+
     
 def plot_wannier_dft_bands(prefix, band_kpath_dict, fermi_e=0, reduce_wann=1, bands_dir='./bands', wann_dir='./epw', y_min=None, y_max=None, savefig=True, s=0.05):    
     """
@@ -117,7 +167,7 @@ def plot_wannier_dft_bands(prefix, band_kpath_dict, fermi_e=0, reduce_wann=1, ba
     import pandas as pd
     fig, ax = plt.subplots(figsize=[4,3], dpi=300)
     bands_df = pd.read_json(f'{bands_dir}/bands_reformatted.json')
-    wann_bands_df = pd.read_csv(f'{wann_dir}/{prefix}_band.dat', delim_whitespace=True, names=['recip', 'band_data'])
+    wann_bands_df = pd.read_csv(f'{wann_dir}/{prefix.lower()}_band.dat', delim_whitespace=True, names=['recip', 'band_data'])
     
     factor = bands_df['recip'].values[-1]/wann_bands_df['recip'].values[-1]
     

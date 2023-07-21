@@ -1,3 +1,10 @@
+import os
+import subprocess
+from elphonpy.pw import scf_input_gen, nscf_input_gen, to_str
+from elphonpy.pseudo import get_pseudos 
+import pandas as pd
+import numpy as np
+
 def proj_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_nscf, param_dict_proj, multE=1.0, workdir='./proj', copy_pseudo=False):
     """
     Prepares input file for projwfc calculation, writes input file to workdir. 
@@ -35,6 +42,9 @@ def proj_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_ns
     f.close()
     
 def scdm_proj_fit(prefix, proj_dir='./proj'):
+    from scipy.optimize import curve_fit
+    from scipy.special import erfc
+    import matplotlib.pyplot as plt
     filename = f'{proj_dir}/{prefix}_proj.out'
     subprocess.run("cat" + f" {filename} " + "| grep '==' | awk '{print $5}'" f" > {proj_dir}/e.dat", shell=True, capture_output=True)
     subprocess.run("cat" + f" {filename} " + "| grep '|psi|^2' | awk '{print $3}'" f" > {proj_dir}/p.dat", shell=True, capture_output=True)
@@ -63,4 +73,6 @@ def scdm_proj_fit(prefix, proj_dir='./proj'):
         f.write('mu_fit mu_opt sigma_opt\n')
         f.write(f'{mu_fit} {mu_opt} {sigma_opt}')
     f.close()
+
+    return mu_opt, sigma_opt
 

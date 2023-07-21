@@ -153,7 +153,15 @@ def matdyn(prefix, structure, kpath_dict, pseudo_dict, fc_file_str, workdir='pho
     
     print(f'Saving matdyn.in file for calculation of phonon dispersion, this will output the phonon dispersion file {phonon_file_str}')
             
-def plot_phonons(prefix, kpath_dict):
+import os
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from elphonpy.pseudo import get_pseudos
+from elphonpy.pw import get_ibrav_celldm, PWInput, to_str
+from elphonpy.bands import get_simple_kpath
+
+def plot_phonons(prefix, kpath_dict, workdir='./phonons'):
     """
     Prepares input file for QE matdyn.x calculation, writes input file to workdir. 
 
@@ -164,7 +172,7 @@ def plot_phonons(prefix, kpath_dict):
     Returns: 
         phonons_dataframe (pandas.DataFrame): The data which the phonons are plotted.
     """
-    phonons_df = pd.read_csv(f'phonons/{str.lower(prefix)}.freq.gp', delim_whitespace=True, header=None)
+    phonons_df = pd.read_csv(f'{workdir}/{str.lower(prefix)}.freq.gp', delim_whitespace=True, header=None)
     col_names = ['recip']
 
     rng = np.arange(1, int(len(list(phonons_df))))
@@ -190,13 +198,13 @@ def plot_phonons(prefix, kpath_dict):
         ax.text(x_sym/max(phonons_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=ax.transAxes)
 
     for i in rng:
-        ax.plot(phonons_df['recip'], phonons_df[f'Mode_{i}'], c='b', lw=1)
+        ax.plot(phonons_df['recip'].values, phonons_df[f'Mode_{i}'].values, c='b', lw=1)
     
     ax.set_ylim(miny,maxy)
     ax.set_xlim(0,max(phonons_df['recip']))
     ax.set_ylabel('Frequency [cm$^{-1}$]')
     ax.set_xticks([])
     fig.tight_layout()
-    fig.savefig(f'phonons/{prefix}_phonons.png')
+    fig.savefig(f'{workdir}/{prefix}_phonons.png')
     
     return fig, ax, phonons_df

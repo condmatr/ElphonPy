@@ -3,6 +3,7 @@ import os
 import subprocess
 import pandas as pd
 import numpy as np
+import json
 from elphonpy.pw import PWInput, get_ibrav_celldm
 from elphonpy.pseudo import get_pseudos
 
@@ -107,7 +108,7 @@ def get_simple_kpath(structure, line_density=100, filpath='./kpath.json'):
     
 #     return kpath_dict
 
-def get_custom_kpath(structure, symbol_kpoints_dict, line_density=100):
+def get_custom_kpath(structure, symbol_kpoints_dict, line_density=100, filpath='./kpath.json'):
     """
     Creates kpath for desired structure using SeeKPath, outputs kpath dictionary. 
 
@@ -177,7 +178,8 @@ def get_custom_kpath(structure, symbol_kpoints_dict, line_density=100):
                   'path_kpoints':path_kp,
                   'path_idx_wrt_kpt':kp_sym_idx,
                   'kpoints':kpt_out}
-    
+    with open(filpath, 'w') as f:
+        json.dump(kpath_dict, f, default=int)
     return kpath_dict
 
 
