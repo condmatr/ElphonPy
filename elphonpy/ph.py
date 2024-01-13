@@ -178,7 +178,8 @@ def plot_phonons(prefix, kpath_dict, workdir='./phonons'):
     rng = np.arange(1, int(len(list(phonons_df))))
     for i in rng:
         col_names.append(f'Mode_{i}')
-    phonons_df.columns = col_names
+
+    phonons_df = pd.read_csv(f'{workdir}/{str.lower(prefix)}.freq.gp', names=col_names, delim_whitespace=True, header=None)
 
     fig, ax = plt.subplots(figsize=[4,3], dpi=300)
     

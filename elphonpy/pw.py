@@ -87,6 +87,10 @@ def get_ibrav_celldm(structure, get_primitive=True):
                  'celldm(4)': np.cos(angles[0]*(np.pi/180)),
                  'celldm(5)': np.cos(angles[0]*(np.pi/180)),
                  'celldm(6)': np.cos(angles[0]*(np.pi/180))}
+
+    else:
+        print("Your system's ibrav is not built into the software yet, ibrav is set to 0.")
+        dict_ = {'ibrav':0}
             
     return dict_
 
@@ -281,10 +285,13 @@ class PWInput:
         elif self.kpoints_mode == "gamma":
             pass
     
-        if self.sections["system"]["ibrav"] == 0:
-            for line in get_cell_params(self.structure):
-                out.append(line)
-        return "\n".join(out)
+        if "ibrav" in self.sections["system"].keys():
+            if self.sections["system"]["ibrav"] != 0:
+                pass
+            if self.sections["system"]["ibrav"] == 0:
+                for line in get_cell_params(self.structure):
+                    out.append(line)
+            return "\n".join(out)
     def as_dict(self):
         """
         Create a dictionary representation of a PWInput object

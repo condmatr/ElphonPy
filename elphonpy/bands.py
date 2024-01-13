@@ -13,17 +13,20 @@ def distance_kpt_spacing(high_sym_kpoints, line_density):
     sym_kpt_idx = []
     idx = 0
     for i in range(len(high_sym_kpoints)-1):
-        num_pts = np.int64(np.round(line_density*np.linalg.norm(high_sym_kpoints[i] - high_sym_kpoints[i+1]),0))
-        kpoints = np.linspace(high_sym_kpoints[i], high_sym_kpoints[i+1], num_pts)
-        if i == 0:
-            kpath = kpath + kpoints.tolist()
-            sym_kpt_idx.append(idx)
-            idx += num_pts + 1
-            sym_kpt_idx.append(idx)
+        if high_sym_kpoints[i] != 'break' and high_sym_kpoints[i+1] != 'break':
+            num_pts = np.int64(np.round(line_density*np.linalg.norm(np.array(high_sym_kpoints[i]) - np.array(high_sym_kpoints[i+1])),0))
+            kpoints = np.linspace(high_sym_kpoints[i], high_sym_kpoints[i+1], num_pts)
+            if i == 0:
+                kpath = kpath + kpoints.tolist()
+                sym_kpt_idx.append(idx)
+                idx += num_pts - 1
+                sym_kpt_idx.append(idx)
+            else:
+                kpath = kpath + kpoints[1:].tolist()
+                idx += num_pts - 1
+                sym_kpt_idx.append(idx)
         else:
-            kpath = kpath + kpoints[1:].tolist()
-            idx += num_pts - 1
-            sym_kpt_idx.append(idx)
+            continue
 
     return kpath, sym_kpt_idx
 
@@ -43,23 +46,28 @@ def get_simple_kpath(structure, line_density=100, filpath='./kpath.json'):
     import json
     skp = seekpath(structure, symprec=0.01)
     kpath = skp.kpath
-
+    sym_kpt_list_clean = []
     sym_kpt_list = []
 
-    for sym in kpath['path'][0]:
-        sym_kpt_list.append(kpath['kpoints'][sym])
-
-    high_sym_kpoints = np.array(sym_kpt_list)
-
-    kpoint_list, sym_idx = distance_kpt_spacing(high_sym_kpoints, line_density)
-    sym_list = kpath['path'][0]
+    for i, sym_path in enumerate(kpath['path']):
+        for j, sym in enumerate(sym_path):
+            if j == len(sym_path)-1 and i != len(kpath['path'])-1:
+                sym_kpt_list.append(kpath['kpoints'][sym])
+                sym_kpt_list.append('break')
+                sym_kpt_list_clean.append(kpath['kpoints'][sym])
+            else:
+                sym_kpt_list.append(kpath['kpoints'][sym])
+                sym_kpt_list_clean.append(kpath['kpoints'][sym])
+            
+    kpoint_list, sym_idx = distance_kpt_spacing(sym_kpt_list, line_density)
+    sym_list = kpath['path']
 
     for i in range(len(sym_list)):
         if sym_list[i] == 'GAMMA':
             sym_list[i] = '$\Gamma$'
 
     kpath_dict = {'path_symbols':sym_list,
-                  'path_kpoints':sym_kpt_list,
+                  'path_kpoints':sym_kpt_list_clean,
                   'path_idx_wrt_kpt':sym_idx,
                   'kpoints':kpoint_list}
 
@@ -149,7 +157,7 @@ def get_custom_kpath(structure, symbol_kpoints_dict, line_density=100, filpath='
         all_kp.append(kp_section)
 
     kp_arrays = np.vstack(all_kp)
-
+    
     kp_sym = symbol_kpoints_dict['path_symbols']
     path_kp = symbol_kpoints_dict['path_kpoints']
     kp_sym_idx = []
@@ -343,7 +351,31 @@ def parse_filband(filband, npl=10, save=True, save_dir='./bands'):
         bands_df.to_json(f'{save_dir}/bands_reformatted.json')
     
     return bands_df, nbnd, kinfo
-    
+
+def latexify(symbol):
+    if '_' in symbol:
+        parts = symbol.split('_')
+        return f"{parts[0]}$_{{{parts[1]}}}$"
+    if symbol == 'GAMMA':
+        return '$\Gamma$'
+    else:
+        return symbol
+
+def join_last_to_first_latex(lst):
+
+    lst_latexified = [[latexify(symbol) for symbol in inner_list] for inner_list in lst]
+
+    result = []
+    for i in range(len(lst_latexified)):
+        inner_list = lst_latexified[i]
+        if i < len(lst_latexified) - 1:
+            joined_element = inner_list[-1] + '|' + lst_latexified[i + 1][0]
+            result.extend(inner_list[:-1] + [joined_element])
+            lst_latexified[i + 1] = lst_latexified[i + 1][1:]
+        else:
+            result.extend(inner_list)
+    return result
+
 def plot_bands(prefix, filband, fermi_e, kpath_dict, y_min=None, y_max=None, savefig=True, save_dir='./bands'):
     """
     Plots electronic band structure from y_min to y_max.
@@ -365,11 +397,20 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, y_min=None, y_max=None, sav
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(figsize=[4,3], dpi=300)
     bands_df, nbnds, kinfo = parse_filband(filband, npl=10, save_dir=save_dir)
-    for i, high_sym in enumerate(kpath_dict['path_symbols']):
-        sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
-        x_sym = bands_df['recip'].iloc[sym_idx]
-        ax.vlines(x_sym, ymin=y_min, ymax=y_max, lw=0.3, colors='k')
-        ax.text(x_sym/max(bands_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=ax.transAxes)
+
+    if isinstance(kpath_dict['path_kpoints'][0][0], list):
+        for i, high_sym in enumerate(join_last_to_first_latex(kpath_dict['path_symbols'])):
+            sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
+            x_sym = bands_df['recip'].iloc[sym_idx]
+            ax.vlines(x_sym, ymin=y_min, ymax=y_max, lw=0.3, colors='k')
+            ax.text(x_sym/max(bands_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=ax.transAxes)
+
+    else:
+        for i, high_sym in enumerate(latexify(kpath_dict['path_symbols'])):
+            sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
+            x_sym = bands_df['recip'].iloc[sym_idx]
+            ax.vlines(x_sym, ymin=y_min, ymax=y_max, lw=0.3, colors='k')
+            ax.text(x_sym/max(bands_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=ax.transAxes)
 
     
     #ax.axhline(0, xmin=0, xmax=max(bands_df['recip']), c='k', ls='--', lw=0.5, alpha=0.5)
