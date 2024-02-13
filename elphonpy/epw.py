@@ -171,7 +171,7 @@ def plot_wannier_dft_bands(prefix, band_kpath_dict, fermi_e=0, reduce_wann=1, ba
     
     factor = bands_df['recip'].values[-1]/wann_bands_df['recip'].values[-1]
     
-    y_min_bands = min(bands_df.values[:,0])
+    y_min_bands = min(bands_df.values[:,1])
     y_max_bands = min(bands_df.values[:,-1])
     
     if y_min == None and y_max == None:
