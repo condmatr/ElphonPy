@@ -4,6 +4,7 @@ import re
 import shutil
 import json
 import numpy as np
+import math
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from pymatgen.core.structure import IStructure
 from elphonpy.pseudo import get_pseudos
@@ -618,12 +619,14 @@ def kpt_res_grid(structure, res):
     Returns:
         kpoint_grid (list) : kpoint grid for given structure and resolution
     """
+    if res <= 0:
+        raise ValueError("Resolution must be greater than 0.")
     
-    i = structure.lattice.reciprocal_lattice.a
-    j = structure.lattice.reciprocal_lattice.b
-    k = structure.lattice.reciprocal_lattice.c
+    i = structure.lattice.reciprocal_lattice.abc[0]
+    j = structure.lattice.reciprocal_lattice.abc[1]
+    k = structure.lattice.reciprocal_lattice.abc[2]
     
-    return [round(i/res), round(j/res), round(k/res)]
+    return [math.ceil(i/res), math.ceil(j/res), math.ceil(k/res)]
         
 def automatic_kppa(structure, kppa):
     
