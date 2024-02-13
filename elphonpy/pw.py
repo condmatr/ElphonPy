@@ -836,6 +836,7 @@ def relax_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=N
     
     
 def read_relax_output(prefix, workdir='./relax', out_filename=None, cif_dir=None, get_primitive=True):
+    from pymatgen.io.cif import CifWriter
     """
     Converts vcrelax.out file to XSF and then imports to VESTA to export to CIF 
     *** Currently requires XCRYSDEN, and ~/path-to-qe-installation/PW/tools/pwo2xsf.sh to be accessible via command line interface ***
@@ -862,14 +863,17 @@ def read_relax_output(prefix, workdir='./relax', out_filename=None, cif_dir=None
         
     cmd_1 = f"grep -A12 'Begin final coordinates' {workdir}/{prefix}_relax.out | tail -13 | tee {workdir}/relax_output.txt"
     cmd_2 = f"pwo2xsf.sh -oc {workdir}/{prefix}_relax.out | tee {workdir}/{prefix}_relaxed.xsf"
-    cmd_3 = f"VESTA -nogui -i {workdir}/{prefix}_relaxed.xsf -o {save_cif_dir}/{filename}.cif"
     
     subprocess.run(cmd_1, shell=True, capture_output=True)
     subprocess.run(cmd_2, shell=True, capture_output=True)
     subprocess.run(cmd_3, shell=True, capture_output=True)
    
-    relaxed_cif_file = f'{save_cif_dir}/{filename}.cif'
-    relaxed_structure = IStructure.from_file(relaxed_cif_file)
+    relaxed_xsf_file = f'{save_cif_dir}/{filename}.xsf'
+    relaxed_structure = IStructure.from_file(relaxed_xsf_file)
+    
+    # Write xsf file to cif
+    cif = CifWriter(relaxed_structure)
+    cif.write_file(f'{save_cif_dir}/{out_filename}.cif')
     
     if get_primitive == True:
         relaxed_structure = SpacegroupAnalyzer(relaxed_structure).find_primitive()
