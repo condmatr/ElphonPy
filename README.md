@@ -15,4 +15,4 @@ pymatgen, numpy, matplotlib.pyplot
 
 Programs that are used in some ElphonPy functions:
 
-read_relax_output --> XCrysDen, VESTA, pwo2xsf.sh (found in ~/qe-installation/PW/tools, and should be added to your .bashrc PATH.)
+read_relax_output --> pwo2xsf.sh (found in ~/qe-installation/PW/tools, and should be added to your .bashrc PATH.)
