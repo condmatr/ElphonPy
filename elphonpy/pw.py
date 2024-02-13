@@ -622,11 +622,20 @@ def kpt_res_grid(structure, res):
     if res <= 0:
         raise ValueError("Resolution must be greater than 0.")
     
-    i = structure.lattice.reciprocal_lattice.abc[0]
-    j = structure.lattice.reciprocal_lattice.abc[1]
-    k = structure.lattice.reciprocal_lattice.abc[2]
+    i, j, k = structure.lattice.reciprocal_lattice.abc
+    initial_grid = [math.ceil(i/res), math.ceil(j/res), math.ceil(k/res)]
     
-    return [math.ceil(i/res), math.ceil(j/res), math.ceil(k/res)]
+
+    sga = SpacegroupAnalyzer(structure)
+    crystal_system = sga.get_crystal_system()
+    round_odd = ['hexagonal', 'cubic', 'tetragonal']
+    
+    if crystal_system in round_odd:
+        kpoint_grid = [g+1 if g%2 == 0 else g for g in initial grid]
+    else:
+        kpoint_grid = initial_grid
+    
+    return kpoint_grid
         
 def automatic_kppa(structure, kppa):
     
