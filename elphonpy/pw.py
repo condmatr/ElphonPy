@@ -631,7 +631,7 @@ def kpt_res_grid(structure, res):
     round_odd = ['hexagonal', 'cubic', 'tetragonal']
     
     if crystal_system in round_odd:
-        kpoint_grid = [g+1 if g%2 == 0 else g for g in initial grid]
+        kpoint_grid = [g+1 if g%2 == 0 else g for g in initial_grid]
     else:
         kpoint_grid = initial_grid
     
@@ -861,12 +861,9 @@ def read_relax_output(prefix, workdir='./relax', out_filename=None, cif_dir=None
     else:
         save_cif_dir = cif_dir
         
-    cmd_1 = f"grep -A12 'Begin final coordinates' {workdir}/{prefix}_relax.out | tail -13 | tee {workdir}/relax_output.txt"
-    cmd_2 = f"pwo2xsf.sh -oc {workdir}/{prefix}_relax.out | tee {workdir}/{prefix}_relaxed.xsf"
+    cmd = f"pwo2xsf.sh -oc {workdir}/{prefix}_relax.out | tee {workdir}/{prefix}_relaxed.xsf"
     
-    subprocess.run(cmd_1, shell=True, capture_output=True)
-    subprocess.run(cmd_2, shell=True, capture_output=True)
-    subprocess.run(cmd_3, shell=True, capture_output=True)
+    subprocess.run(cmd, shell=True, capture_output=True)
    
     relaxed_xsf_file = f'{save_cif_dir}/{filename}.xsf'
     relaxed_structure = IStructure.from_file(relaxed_xsf_file)
