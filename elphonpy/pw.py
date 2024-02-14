@@ -865,7 +865,7 @@ def read_relax_output(prefix, workdir='./relax', out_filename=None, cif_dir=None
     
     subprocess.run(cmd, shell=True, capture_output=True)
    
-    relaxed_xsf_file = f'{save_cif_dir}/{filename}.xsf'
+    relaxed_xsf_file = f'{workdir}/{filename}.xsf'
     relaxed_structure = IStructure.from_file(relaxed_xsf_file)
     
     # Write xsf file to cif
