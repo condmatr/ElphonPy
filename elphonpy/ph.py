@@ -136,7 +136,7 @@ def matdyn(prefix, structure, kpath_dict, pseudo_dict, fc_file_str, workdir='pho
     out = []
     
     out.append(f' flfrc={fc_file_str}')
-    
+    out.append(f' q_in_cryst_coord=.TRUE.')
     for i in list(matdyn_dict.keys()):
         out.append(f' {i}={to_str(matdyn_dict[i])}')
     
