@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from elphonpy.pseudo import get_pseudos
 from elphonpy.pw import get_ibrav_celldm, PWInput, to_str
-from elphonpy.bands import get_simple_kpath
+from elphonpy.bands import get_simple_kpath, join_last_to_first_latex
 
 def phonon_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_ph, multE=1.0, rhoe=None, workdir='./phonons', copy_pseudo=False):
     """
@@ -153,14 +153,6 @@ def matdyn(prefix, structure, kpath_dict, pseudo_dict, fc_file_str, workdir='pho
     
     print(f'Saving matdyn.in file for calculation of phonon dispersion, this will output the phonon dispersion file {phonon_file_str}')
             
-import os
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from elphonpy.pseudo import get_pseudos
-from elphonpy.pw import get_ibrav_celldm, PWInput, to_str
-from elphonpy.bands import get_simple_kpath
-
 def plot_phonons(prefix, kpath_dict, workdir='./phonons'):
     """
     Prepares input file for QE matdyn.x calculation, writes input file to workdir. 
@@ -192,11 +184,20 @@ def plot_phonons(prefix, kpath_dict, workdir='./phonons'):
     maxy = maxi + (0.2*maxi)
     
     ax.axhline(0, xmin=0, xmax=max(phonons_df['recip']), c='k', ls='--', lw=0.5, alpha=0.5)
-    for i, high_sym in enumerate(kpath_dict['path_symbols']):
-        sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
-        x_sym = phonons_df['recip'].iloc[sym_idx]
-        ax.vlines(x_sym, ymin=miny, ymax=maxy, lw=0.3, colors='k')
-        ax.text(x_sym/max(phonons_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=ax.transAxes)
+
+    if isinstance(kpath_dict['path_symbols'][0], list):
+        for i, high_sym in enumerate(join_last_to_first_latex(kpath_dict['path_symbols'])):
+            sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
+            x_sym = phonons_df['recip'].iloc[sym_idx]
+            ax.vlines(x_sym, ymin=miny, ymax=maxy, lw=0.3, colors='k')
+            ax.text(x_sym/max(phonons_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=ax.transAxes) 
+
+    else:
+        for i, high_sym in enumerate(kpath_dict['path_symbols']):
+            sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
+            x_sym = phonons_df['recip'].iloc[sym_idx]
+            ax.vlines(x_sym, ymin=miny, ymax=maxy, lw=0.3, colors='k')
+            ax.text(x_sym/max(phonons_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=ax.transAxes)
 
     for i in rng:
         ax.plot(phonons_df['recip'].values, phonons_df[f'Mode_{i}'].values, c='b', lw=1)
