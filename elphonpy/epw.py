@@ -23,7 +23,6 @@ def epw_wdata(param_dict_epw, wannier_plot, kpath_dict):
         j += 2
         wdata_list.append("wdata(1) = 'bands_plot = .TRUE.'")
         wdata_list.append("wdata(2) = 'begin kpoint_path'")
-
         for i in range(len(kpath_dict['path_kpoints'])-1):
 
             kpt_1, kpt_sym_1 = kpath_dict['path_kpoints'][i], kpath_dict['path_symbols'][i]
@@ -203,3 +202,172 @@ def plot_wannier_dft_bands(prefix, band_kpath_dict, fermi_e=0, reduce_wann=1, ba
     fig.tight_layout()
     if savefig == True:
         plt.savefig(f'{wann_dir}/{prefix}_DFT_wann_bands.png')
+
+
+def allen_dynes(freq, a2f):
+    import numpy as np
+    from scipy.integrate import trapezoid
+
+    lambda_values = []
+    
+    def lambda_(freq, a2f):
+        return trapezoid(y=2*(a2f/freq), x=freq)
+
+    def omega_log(freq, a2f, lamb):
+        return np.exp((2/lamb)*trapezoid(y=(a2f/freq)*np.log(freq), x=freq))
+
+    for i in range(len(freq)):
+        a2f_vals = a2f[:i] 
+        omega_vals = freq[:i]
+
+        lambda_values.append(trapezoid(y=2*(a2f_vals/omega_vals), x=omega_vals))
+
+    lamb = lambda_(freq,a2f)
+    ol = omega_log(freq,a2f,lamb)
+    tcs = []
+    for mu in np.arange(0.10,0.21,0.01):
+        Tc = (ol*11.6/1.2) * np.exp((-1.04*(1+lamb))/(lamb-(mu*(1+0.62*lamb))))
+        tcs.append(Tc)
+        
+    return ol, lamb, lambda_values, tcs
+
+
+def get_degaussw_degaussq(files):
+    degaussw = [] # empty list for electronic smearings
+    degaussq = [] # empty list for phonon smearings
+    print(files)
+    for j, file_path in enumerate(files): # for each file passed to the function
+        # read file
+        with open(file_path, 'r') as file: 
+            lines = file.readlines()
+            for i, line in enumerate(lines): # line by line search
+                # search for keywords and split strings
+                if "Phonon smearing (meV)" in line and j == 0: # only get degaussq once (assuming the same for all files in dir)
+                    try:
+                        values = [float(val) for val in lines[i + 1].split()[1:]] # line starts with hash sym
+                        degaussq.extend(values)
+                    except ValueError:
+                        raise ValueError
+                if "Electron smearing (eV)" in line: # get degaussw for each file in list
+                    try:
+                        value = float(line.split()[-1])
+                        degaussw.append(value)
+                    except ValueError:
+                        raise ValueError
+            # close file
+            file.close()
+    # return smearing lists 
+    return degaussw, degaussq
+    
+
+def plot_a2f_file(prefix, filename, degaussw, degaussq_list, dim_a2f=[2,5],
+                  savefig=True, savedir=None, title=None):
+
+    if dim_a2f == None: # Rows and columns of figure, 10 q smearings in file by default
+        print('Provide dimensions of subplot array for a2f')
+
+    # set column names of dataframe and make dataframe
+    col_names = ['freq'] + [f'phsmear_{x:.3f}' for x in degaussq_list]
+    a2f_df = pd.read_csv(filename, delim_whitespace=True, names=col_names, skipfooter=7, engine='python')
+
+    # Plotting
+    fig,axes = plt.subplots(dim_a2f[0],dim_a2f[1], figsize=[dim_a2f[1]*5, dim_a2f[0]*5], dpi=300, sharey=True, sharex=True)
+    l = 0 # dummy counter row
+    m = 0 # dummy counter column
+    for i, dq in enumerate(col_names[1:]): # for each a2f column in a2f_df
+        if m > dim_a2f[1]-1: # if row counter > # of rows
+            l += 1           # increase row
+            m = 0            # set column to 0
+
+        ax = axes[l,m] # select axis for plotting
+
+        ol, lamb, lambda_values, tcs = allen_dynes(a2f_df['freq'], a2f_df[dq])
+        ax.plot(a2f_df['freq'], a2f_df[dq]) # plot a2f for column
+        ax.plot(a2f_df['freq'], lambda_values) # plot lambda for column 
+        
+        # Setting title for each axis, xlimits, ylimits for each axis based on maximum values in a2f file
+        ax.set_title(f'{degaussq_list[i]:.3f} meV', fontsize=14)
+        ax.set_xlim(0,max(a2f_df['freq']))
+        ax.set_ylim(0,max(a2f_df[col_names[1]]))
+
+        # Only put labels on the left most (ylabel), or bottom most (xlabel) subplot axes
+        if l == dim_a2f[0]-1: 
+            ax.set_xlabel('Energy (meV)', fontsize=14)
+            ax.set_xticklabels(ax.xaxis.get_ticklabels(), fontsize=12)
+        if m == 0:
+            ax.set_ylabel('$\\alpha^{2}F(\omega)$', fontsize=14)
+            ax.set_yticklabels(ax.yaxis.get_ticklabels(), fontsize=12)
+        m += 1
+
+    # Prepare figure for saving and save
+    if title == None:
+        fig.suptitle(f'{prefix} e-smearing {degaussw:.2f}', y=1.07, fontsize=16)
+    else:
+        fig.suptitle(title, y=0.98, fontsize=18)
+    fig.tight_layout()
+    if savefig == True:
+        if savedir == None:
+            fig.savefig(f'./{prefix}.a2f_{degaussw:.2f}.png')
+        else:
+            fig.savefig(f'{savedir}/{prefix}.a2f_{degaussw:.2f}.png')
+
+    return a2f_df
+
+def epw_smearing_convergence_plot(prefix, files, degaussw_list, degaussq_list, savefig=True, savedir=None):
+    col_names = ['freq'] + [f'phsmear_{dq:.3f}' for dq in degaussq_list] # set column names for df
+    fig, ax = plt.subplots(1,2, figsize=[10,5]) # instantiate figure
+    for dq in degaussq_list:
+        omg_log = [] # empty list for omega_logs 
+        lambdas = [] # empty list for lambdas
+        for idx, file in enumerate(files):
+            
+            # Open file with pandas
+            df = pd.read_csv(file, delim_whitespace=True, names=col_names, skipfooter=7, engine='python')
+        
+            # Integrate a2F(omega) for lambda, omega_log
+            ol, lamb, lambda_values, tcs = allen_dynes(df['freq'], df[f'phsmear_{dq:.3f}'])
+            lambdas.append(lamb)
+            omg_log.append(ol)
+        
+        # plot omega_log for each phsmear, each degaussw
+        ax[0].plot(degaussw_list, omg_log, label=f'{dq:.2f} meV') 
+        # plot lambda for each phsmear, each degaussw
+        ax[1].plot(degaussw_list, lambdas, label=f'{dq:.2f} meV') 
+
+    # set ax labels, tiddy up figure, save figure
+    ax[0].set_xlabel('Electronic Smearing (eV)') 
+    ax[1].set_xlabel('Electronic Smearing (eV)')
+    ax[0].set_ylabel('$\omega_{log}$ (meV)')
+    ax[1].set_ylabel('$\lambda$')
+    ax[1].legend()
+    fig.tight_layout()
+    if savefig == True:
+        if savedir == None:
+            fig.savefig(f'./{prefix}.a2f_convergence_smearing.png')
+        else:
+            fig.savefig(f'{savedir}/{prefix}.a2f_convergence_smearing.png')
+
+def plot_epw_convergence(prefix, workdir, plot_a2f=True, plot_smear=True,
+                         title='$\\alpha^{2}F(\omega)$ convergence: degaussq',
+                         savefig=True, savedir=None, a2f_smear_idx=1, dim_a2f=[2,5]):
+    import warnings
+    import glob
+    # Setup to ignore specific warnings
+    warnings.simplefilter(action='ignore', category=FutureWarning)
+    
+    # Construct the pattern for the file search
+    search_pattern = f"{prefix}.a2f.*"
+    full_path_pattern = os.path.join(workdir, search_pattern)
+    matching_files = sorted(glob.glob(full_path_pattern))
+
+    degaussw_list, degaussq_list = get_degaussw_degaussq(matching_files)
+
+    if plot_a2f == True:
+        a2f_df = plot_a2f_file(prefix=prefix, filename=matching_files[a2f_smear_idx], degaussw=degaussw_list[a2f_smear_idx],
+                               degaussq_list=degaussq_list, dim_a2f=dim_a2f, savefig=savefig, savedir=workdir, title=title)
+
+    if plot_smear == True:
+        plot_epw_smearing_convergence(prefix=prefix, files=matching_files, degaussw_list=degaussw_list,
+                                      degaussq_list=degaussq_list, savefig=savefig, savedir=workdir)
+        
+    return a2f_df
