@@ -376,9 +376,9 @@ def join_last_to_first_latex(lst):
             result.extend(inner_list)
     return result
 
-def plot_bands(prefix, filband, fermi_e, kpath_dict, y_min=None, y_max=None, savefig=True, save_dir='./bands'):
+def plot_bands(prefix, filband, fermi_e, kpath_dict, axis=None, y_min=None, y_max=None, savefig=True, save_dir='./bands'):
     """
-    Plots electronic band structure from y_min to y_max.
+    Plots electronic band structure from y_min to y_maxis.
 
     Args:
         prefix (str): prefix of output files for NSCF bands calculations
@@ -393,43 +393,70 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, y_min=None, y_max=None, sav
     Returns:
         bands_df (pandas DataFrame): Dataframe containing parsed band data.
     """
-    
+    # import matplotlib
     import matplotlib.pyplot as plt
-    fig, ax = plt.subplots(figsize=[4,3], dpi=300)
+
+    # pull in data from filband data file produced by bands.x
     bands_df, nbnds, kinfo = parse_filband(filband, npl=10, save_dir=save_dir)
 
+    # Create axis if none is supplied
+    if axis == None:
+        fig, axis = plt.subplots(figsize=[4,3], dpi=300)
+        chose_ax = False
+    # Chose an axis, don't create a new fig, ax
+    else:
+        chose_ax = True
+
+    # Set appropriate y_min if none is chosen
+    if y_min == None:
+        y_min = 1.05*min(bands_df['0'])
+    if y_max == None:
+        y_max = 1.05*max(bands_df[bands_df.columns[-1]])
+
+    # Gotta do this for broken kpaths, not sure how to improve to make this more readable/predictable when modifying
     if isinstance(kpath_dict['path_kpoints'][0][0], list):
         for i, high_sym in enumerate(join_last_to_first_latex(kpath_dict['path_symbols'])):
             sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
             x_sym = bands_df['recip'].iloc[sym_idx]
-            ax.vlines(x_sym, ymin=y_min, ymax=y_max, lw=0.3, colors='k')
-            ax.text(x_sym/max(bands_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=ax.transAxes)
-
+            axis.vlines(x_sym, ymin=y_min, ymax=y_max, lw=0.3, colors='k')
+            axis.text(x_sym/max(bands_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=axis.transAxes)
+    
+    # Normal routine for continuous kpath
     else:
         for i, high_sym in enumerate(latexify(kpath_dict['path_symbols'])):
             sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
             x_sym = bands_df['recip'].iloc[sym_idx]
-            ax.vlines(x_sym, ymin=y_min, ymax=y_max, lw=0.3, colors='k')
-            ax.text(x_sym/max(bands_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=ax.transAxes)
+            axis.vlines(x_sym, ymin=y_min*1.05, ymax=y_max*1.05, lw=0.3, colors='k')
+            axis.text(x_sym/max(bands_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=axis.transAxes)
 
-    
-    #ax.axhline(0, xmin=0, xmax=max(bands_df['recip']), c='k', ls='--', lw=0.5, alpha=0.5)
-    ax.axhline(fermi_e, ls='dashed', c='k', lw=0.5 )
-
+    # plot bands from bands_df, reference zero to the Fermi level supplied from fermi_e variable
     for idx in range(1,len(bands_df.columns)-1):
-        ax.plot(bands_df['recip'], bands_df[f'{idx}'].values - fermi_e, lw=1, c='b')
-        
-    if y_min != None and y_max != None:
-        ax.set_ylim(y_min,y_max)
-    
-    ax.set_xlim(0,max(bands_df['recip']))
-    ax.xaxis.set_visible(False)
-    ax.set_ylabel('Energy [eV]')
-    fig.tight_layout()
+        axis.plot(bands_df['recip'], bands_df[f'{idx}'].values - fermi_e, lw=1, c='b')
+
+    # plot a horizontal line denoting the Fermi level (0 eV)
+    axis.axhline(0, ls='dashed', c='k', lw=0.5 )
+
+    # set ax limits
+    axis.set_ylim(y_min,y_max)
+
+    # save the figure if required
     if savefig == True:
+        fig.tight_layout()
         fig.savefig(f'{save_dir}/{prefix}_bands.png')
-    
-    return bands_df
+
+    # If an ax is not chose, return the fig, ax, bands_df
+    if chose_ax==False:
+        axis.set_xlim(0,max(bands_df['recip']))
+        axis.xaxis.set_visible(False)
+        axis.set_ylabel('E - E$_{F}$ [eV]')
+        
+        return fig, axis, bands_df
+    # if not, return just the bands_df
+    else:
+        axis.set_xlim(0,max(bands_df['recip']))
+        axis.xaxis.set_visible(False)
+        
+        return bands_df
 
 def wannier_windows_info(bands_df, fermi_e, save_dir='./bands'):
     """
