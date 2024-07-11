@@ -206,6 +206,19 @@ def plot_wannier_dft_bands(prefix, band_kpath_dict, fermi_e=0, reduce_wann=1, ba
 
 
 def allen_dynes(freq, a2f):
+    """
+    Calculate quantities related to the Allen-Dynes eq. for Tc from Eliashberg spectral function.
+
+    Args:
+        freq (array-like): frequency data
+        a2f (array-like): Eliashberg spectral function data
+
+    Returns:
+        ol (float): omega_log
+        lamb (float): electron-phonon coupling constant
+        lambda_values (list): frequency-dependent integration of electron-phonon coupling constant
+        tcs (list): Calculated Tc using mu* 0.1-0.2 in 0.01 increments
+    """
     import numpy as np
     from scipy.integrate import trapezoid
 

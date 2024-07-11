@@ -863,7 +863,7 @@ def read_relax_output(prefix, workdir='./relax', out_filename=None, cif_dir=None
         
     cmd = f"pwo2xsf.sh -oc {workdir}/{prefix}_relax.out | tee {workdir}/{prefix}_relaxed.xsf"
     
-    subprocess.run(cmd, shell=True, capture_output=True)
+    print(subprocess.run(cmd, shell=True, capture_output=True))
    
     relaxed_xsf_file = f'{workdir}/{prefix}_relaxed.xsf'
     relaxed_structure = IStructure.from_file(relaxed_xsf_file)
