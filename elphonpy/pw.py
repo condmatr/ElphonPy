@@ -834,12 +834,12 @@ def relax_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=N
     
     relax_calc.write_file(f'./{workdir}/{prefix}_relax.in')
     
-    
 def read_relax_output(prefix, workdir='./relax', out_filename=None, cif_dir=None, get_primitive=True):
-    from pymatgen.io.cif import CifWriter
+    import re
+    from pymatgen.core import Structure, Lattice
     """
-    Converts vcrelax.out file to XSF and then imports to VESTA to export to CIF 
-    *** Currently requires XCRYSDEN, and ~/path-to-qe-installation/PW/tools/pwo2xsf.sh to be accessible via command line interface ***
+    Converts vcrelax.out file to CIF
+
     
     Args:
         prefix (str): prefix of input/output files for relax_calculations
@@ -860,22 +860,91 @@ def read_relax_output(prefix, workdir='./relax', out_filename=None, cif_dir=None
         save_cif_dir = workdir
     else:
         save_cif_dir = cif_dir
-        
-    cmd = f"pwo2xsf.sh -oc {workdir}/{prefix}_relax.out | tee {workdir}/{prefix}_relaxed.xsf"
+
+    file_path = f'{workdir}/{prefix}_relax.out'
+
+    # Initialize variables
+    cell_parameters = []
+    atomic_positions = []
+    species = []
     
-    print(subprocess.run(cmd, shell=True, capture_output=True))
-   
-    relaxed_xsf_file = f'{workdir}/{prefix}_relaxed.xsf'
-    relaxed_structure = IStructure.from_file(relaxed_xsf_file)
+    # Regular expressions for parsing
+    cell_param_regex = re.compile(r'CELL_PARAMETERS\s*\(angstrom\)', re.IGNORECASE)
+    atomic_pos_regex = re.compile(r'ATOMIC_POSITIONS\s*\(crystal\)', re.IGNORECASE)
+    end_section_regex = re.compile(r'End final coordinates', re.IGNORECASE)
+    
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+    
+    # Flags to track sections
+    in_section = False
+    cell_params_started = False
+    atomic_pos_started = False
+    
+    for line in lines:
+        if 'Begin final coordinates' in line:
+            in_section = True
+            continue
+        if 'End final coordinates' in line:
+            break
+        if in_section:
+            # Extract CELL_PARAMETERS
+            if cell_param_regex.search(line):
+                cell_params_started = True
+                atomic_pos_started = False
+                continue
+    
+            # Extract ATOMIC_POSITIONS
+            if atomic_pos_regex.search(line):
+                atomic_pos_started = True
+                cell_params_started = False
+                continue
+    
+            # Read CELL_PARAMETERS
+            if cell_params_started:
+                parts = line.strip().split()
+                if len(parts) == 3:
+                    cell_parameters.append([float(x) for x in parts])
+                continue
+    
+            # Read ATOMIC_POSITIONS
+            if atomic_pos_started:
+                parts = line.strip().split()
+                if len(parts) == 4:
+                    species.append(parts[0])
+                    atomic_positions.append([float(x) for x in parts[1:]])
+                continue
+    
+    # Validate extracted data
+    if not cell_parameters:
+        raise ValueError("CELL_PARAMETERS not found in the specified section.")
+    if not atomic_positions:
+        raise ValueError("ATOMIC_POSITIONS not found in the specified section.")
+    
+    # Create Lattice object
+    lattice = Lattice(cell_parameters)
+    
+    # Create Structure object
+    structure = Structure(
+        lattice=lattice,
+        species=species,
+        coords=atomic_positions,
+        coords_are_cartesian=False  # Since positions are in crystal coordinates
+    )
+    
+    # Optionally, you can add additional properties
+    
+    # Print the Structure to verify
+    print(structure)
+    
+    structure.to(filename=f'{cif_dir}/{filename}.cif')    
     
     # Write xsf file to cif
-    cif = CifWriter(relaxed_structure)
-    cif.write_file(f'{save_cif_dir}/{out_filename}.cif')
-    
     if get_primitive == True:
-        relaxed_structure = SpacegroupAnalyzer(relaxed_structure).find_primitive()
+        structure = SpacegroupAnalyzer(structure).find_primitive()
     else:
         print('Primitive structure not chosen, please double check your celldm and ibrav if using this structure in your\
                next calculation')
-    return relaxed_structure
+    return structure
+    
 

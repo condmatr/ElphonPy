@@ -445,12 +445,12 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, axis=None, y_min=None, y_ma
         fig.savefig(f'{save_dir}/{prefix}_bands.png')
 
     # If an ax is not chose, return the fig, ax, bands_df
-    if chose_ax==False:
+    if chose_ax==True:
         axis.set_xlim(0,max(bands_df['recip']))
         axis.xaxis.set_visible(False)
         axis.set_ylabel('E - E$_{F}$ [eV]')
         
-        return fig, axis, bands_df
+        return axis, bands_df
     # if not, return just the bands_df
     else:
         axis.set_xlim(0,max(bands_df['recip']))
