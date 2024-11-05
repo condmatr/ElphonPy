@@ -167,6 +167,8 @@ def plot_phonons(prefix, kpath_dict, workdir='./phonons'):
     phonons_df = pd.read_csv(f'{workdir}/{str.lower(prefix)}.freq.gp', delim_whitespace=True, header=None)
     col_names = ['recip']
 
+    cm_to_meV = 1 / 8.065610
+
     rng = np.arange(1, int(len(list(phonons_df))))
     for i in rng:
         col_names.append(f'Mode_{i}')
@@ -200,11 +202,11 @@ def plot_phonons(prefix, kpath_dict, workdir='./phonons'):
             ax.text(x_sym/max(phonons_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=ax.transAxes)
 
     for i in rng:
-        ax.plot(phonons_df['recip'].values, phonons_df[f'Mode_{i}'].values, c='b', lw=1)
+        ax.plot(phonons_df['recip'].values, phonons_df[f'Mode_{i}'].values*cm_to_meV, c='b', lw=1)
     
     ax.set_ylim(miny,maxy)
     ax.set_xlim(0,max(phonons_df['recip']))
-    ax.set_ylabel('Frequency [cm$^{-1}$]')
+    ax.set_ylabel('Energy [meV]')
     ax.set_xticks([])
     fig.tight_layout()
     fig.savefig(f'{workdir}/{prefix}_phonons.png')
