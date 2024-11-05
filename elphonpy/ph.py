@@ -177,10 +177,10 @@ def plot_phonons(prefix, kpath_dict, workdir='./phonons'):
 
     fig, ax = plt.subplots(figsize=[4,3], dpi=300)
     
-    mini = np.min(phonons_df.values)
-    maxi = np.max(phonons_df.values)
-    if mini > -10:
-        miny = -10
+    mini = np.min(phonons_df.values * cm_to_meV)
+    maxi = np.max(phonons_df.values * cm_to_meV)
+    if mini > -5:
+        miny = -5
     else:
         miny = mini+(0.2*mini)
     maxy = maxi + (0.2*maxi)
