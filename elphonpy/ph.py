@@ -153,7 +153,7 @@ def matdyn(prefix, structure, kpath_dict, pseudo_dict, fc_file_str, workdir='pho
     
     print(f'Saving matdyn.in file for calculation of phonon dispersion, this will output the phonon dispersion file {phonon_file_str}')
             
-def plot_phonons(prefix, kpath_dict, workdir='./phonons'):
+def plot_phonons(prefix, kpath_dict, axis=None, workdir='./phonons'):
     """
     Prepares input file for QE matdyn.x calculation, writes input file to workdir. 
 
@@ -175,7 +175,13 @@ def plot_phonons(prefix, kpath_dict, workdir='./phonons'):
 
     phonons_df = pd.read_csv(f'{workdir}/{str.lower(prefix)}.freq.gp', names=col_names, delim_whitespace=True, header=None)
 
-    fig, ax = plt.subplots(figsize=[4,3], dpi=300)
+    # Create axis if none is supplied
+    if axis == None:
+        fig, axis = plt.subplots(figsize=[4,3], dpi=300)
+        chose_ax = False
+    # Chose an axis, don't create a new fig, ax
+    else:
+        chose_ax = True    
     
     mini = np.min(phonons_df.values * cm_to_meV)
     maxi = np.max(phonons_df.values * cm_to_meV)
@@ -185,30 +191,35 @@ def plot_phonons(prefix, kpath_dict, workdir='./phonons'):
         miny = mini+(0.2*mini)
     maxy = maxi + (0.2*maxi)
     
-    ax.axhline(0, xmin=0, xmax=max(phonons_df['recip']), c='k', ls='--', lw=0.5, alpha=0.5)
+    axis.axhline(0, xmin=0, xmax=max(phonons_df['recip']), c='k', ls='--', lw=0.5, alpha=0.5)
 
     if isinstance(kpath_dict['path_symbols'][0], list):
         for i, high_sym in enumerate(join_last_to_first_latex(kpath_dict['path_symbols'])):
             sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
             x_sym = phonons_df['recip'].iloc[sym_idx]
-            ax.vlines(x_sym, ymin=miny, ymax=maxy, lw=0.3, colors='k')
-            ax.text(x_sym/max(phonons_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=ax.transAxes) 
+            axis.vlines(x_sym, ymin=miny, ymax=maxy, lw=0.3, colors='k')
+            axis.text(x_sym/max(phonons_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=axis.transAxes) 
 
     else:
         for i, high_sym in enumerate(kpath_dict['path_symbols']):
             sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
             x_sym = phonons_df['recip'].iloc[sym_idx]
-            ax.vlines(x_sym, ymin=miny, ymax=maxy, lw=0.3, colors='k')
-            ax.text(x_sym/max(phonons_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=ax.transAxes)
+            axis.vlines(x_sym, ymin=miny, ymax=maxy, lw=0.3, colors='k')
+            axis.text(x_sym/max(phonons_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=axis.transAxes)
 
     for i in rng:
-        ax.plot(phonons_df['recip'].values, phonons_df[f'Mode_{i}'].values*cm_to_meV, c='b', lw=1)
+        axis.plot(phonons_df['recip'].values, phonons_df[f'Mode_{i}'].values*cm_to_meV, c='b', lw=1)
     
-    ax.set_ylim(miny,maxy)
-    ax.set_xlim(0,max(phonons_df['recip']))
-    ax.set_ylabel('Energy [meV]')
-    ax.set_xticks([])
-    fig.tight_layout()
-    fig.savefig(f'{workdir}/{prefix}_phonons.png')
+    axis.set_ylim(miny,maxy)
+    axis.set_xlim(0,max(phonons_df['recip']))
+    axis.set_xticks([])
     
-    return fig, ax, phonons_df
+    if chose_ax == False:
+        axis.set_ylabel('Energy [meV]')
+        fig.tight_layout()
+        fig.savefig(f'{workdir}/{prefix}_phonons.png')
+    
+        return phonons_df
+
+    if chose_ax == True:
+        return axis, phonons_df
