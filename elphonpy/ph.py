@@ -197,14 +197,14 @@ def plot_phonons(prefix, kpath_dict, axis=None, workdir='./phonons'):
         for i, high_sym in enumerate(join_last_to_first_latex(kpath_dict['path_symbols'])):
             sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
             x_sym = phonons_df['recip'].iloc[sym_idx]
-            axis.vlines(x_sym, ymin=miny, ymax=maxy, lw=0.3, colors='k')
+            axis.vlines(x_sym, ymin=miny, ymax=maxy+100, lw=0.3, colors='k')
             axis.text(x_sym/max(phonons_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=axis.transAxes) 
 
     else:
         for i, high_sym in enumerate(kpath_dict['path_symbols']):
             sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
             x_sym = phonons_df['recip'].iloc[sym_idx]
-            axis.vlines(x_sym, ymin=miny, ymax=maxy, lw=0.3, colors='k')
+            axis.vlines(x_sym, ymin=miny, ymax=maxy+100, lw=0.3, colors='k')
             axis.text(x_sym/max(phonons_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=axis.transAxes)
 
     for i in rng:
