@@ -378,7 +378,7 @@ def join_last_to_first_latex(lst):
 
 def plot_bands(prefix, filband, fermi_e, kpath_dict, axis=None, y_min=None, y_max=None, savefig=True, save_dir='./bands'):
     """
-    Plots electronic band structure from y_min to y_maxis.
+    Plots electronic band structure from y_min to y_max.
 
     Args:
         prefix (str): prefix of output files for NSCF bands calculations
@@ -439,11 +439,6 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, axis=None, y_min=None, y_ma
     # set ax limits
     axis.set_ylim(y_min,y_max)
 
-    # save the figure if required
-    if savefig == True:
-        fig.tight_layout()
-        fig.savefig(f'{save_dir}/{prefix}_bands.png')
-
     # If an ax is not chose, return the fig, ax, bands_df
     if chose_ax==True:
         axis.set_xlim(0,max(bands_df['recip']))
@@ -456,8 +451,13 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, axis=None, y_min=None, y_ma
         axis.xaxis.set_visible(False)
         axis.set_ylabel('E - E$_{F}$ [eV]')
         
+        # save the figure if required
+        if savefig == True:
+            fig.tight_layout()
+            fig.savefig(f'{save_dir}/{prefix}_bands.png')
+            
         return bands_df
-
+        
 def wannier_windows_info(bands_df, fermi_e, save_dir='./bands'):
     """
     Saves a data file with fermi energy, and band minimum and band maximum for each band in band directory for ease of setting 
