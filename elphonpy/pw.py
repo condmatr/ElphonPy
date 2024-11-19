@@ -747,11 +747,12 @@ def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, rhoe=Non
         if rhoe != None:
             pmd['system'].update({'ecutrho':min_ecutwfc*multE*rhoe})
     
-    if 'kpoints_mode' in pmd.keys() and pmd['kpoints_mode'] == 'gamma':
-        
+    if 'kpoint_mode' in pmd.keys() and pmd['kpoint_mode'] == 'automatic':
+        print('automatic k-points selected')
         nscf_calc = PWInput(structure=structure, pseudo=pseudopotentials,
                             control=pmd['control'], electrons=pmd['electrons'],
-                            system=pmd['system'],kpoints_mode=pmd['kpoints_mode'])
+                            system=pmd['system'],kpoints_mode=pmd['kpoint_mode'],
+                            kpoints_grid=pmd['kpoint_grid'])
         nscf_calc.write_file(f'{workdir}/{prefix}_nscf.in')
     
     else:
