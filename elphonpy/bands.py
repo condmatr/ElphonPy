@@ -376,7 +376,7 @@ def join_last_to_first_latex(lst):
             result.extend(inner_list)
     return result
 
-def plot_bands(prefix, filband, fermi_e, kpath_dict, axis=None, y_min=None, y_max=None, savefig=True, save_dir='./bands'):
+def plot_bands(prefix, filband, fermi_e, kpath_dict, axis=None, y_min=None, y_max=None, savefig=True, save_dir='./bands', **kwargs):
     """
     Plots electronic band structure from y_min to y_max.
 
@@ -413,13 +413,16 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, axis=None, y_min=None, y_ma
     if y_max == None:
         y_max = 1.05*max(bands_df[bands_df.columns[-1]])
 
+    # Get hsym_height from kwargs or use default
+    hsym_height = kwargs.get('hsym_height', -0.05)
+
     # Gotta do this for broken kpaths, not sure how to improve to make this more readable/predictable when modifying
     if isinstance(kpath_dict['path_kpoints'][0][0], list):
         for i, high_sym in enumerate(join_last_to_first_latex(kpath_dict['path_symbols'])):
             sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
             x_sym = bands_df['recip'].iloc[sym_idx]
             axis.vlines(x_sym, ymin=y_min, ymax=y_max, lw=0.3, colors='k')
-            axis.text(x_sym/max(bands_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=axis.transAxes)
+            axis.text(x_sym/max(bands_df['recip']), hsym_height, f'{high_sym}', ha='center', va='center', transform=axis.transAxes)
     
     # Normal routine for continuous kpath
     else:
@@ -427,7 +430,7 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, axis=None, y_min=None, y_ma
             sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
             x_sym = bands_df['recip'].iloc[sym_idx]
             axis.vlines(x_sym, ymin=y_min*1.05, ymax=y_max*1.05, lw=0.3, colors='k')
-            axis.text(x_sym/max(bands_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=axis.transAxes)
+            axis.text(x_sym/max(bands_df['recip']), hsym_height, f'{high_sym}', ha='center', va='center', transform=axis.transAxes)
 
     # plot bands from bands_df, reference zero to the Fermi level supplied from fermi_e variable
     for idx in range(1,len(bands_df.columns)-1):
