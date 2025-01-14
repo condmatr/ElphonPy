@@ -396,6 +396,11 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, axis=None, y_min=None, y_ma
     # import matplotlib
     import matplotlib.pyplot as plt
 
+    # kwargs
+    hsym_height = kwargs.get('hsym_height', -0.05)
+    color = kwargs.get('color', 'b')
+    linestyle = kwargs.get('linestyle', '-')
+    
     # pull in data from filband data file produced by bands.x
     bands_df, nbnds, kinfo = parse_filband(filband, npl=10, save_dir=save_dir)
 
@@ -412,9 +417,6 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, axis=None, y_min=None, y_ma
         y_min = 1.05*min(bands_df['0'])
     if y_max == None:
         y_max = 1.05*max(bands_df[bands_df.columns[-1]])
-
-    # Get hsym_height from kwargs or use default
-    hsym_height = kwargs.get('hsym_height', -0.05)
 
     # Gotta do this for broken kpaths, not sure how to improve to make this more readable/predictable when modifying
     if isinstance(kpath_dict['path_kpoints'][0][0], list):
@@ -434,7 +436,7 @@ def plot_bands(prefix, filband, fermi_e, kpath_dict, axis=None, y_min=None, y_ma
 
     # plot bands from bands_df, reference zero to the Fermi level supplied from fermi_e variable
     for idx in range(1,len(bands_df.columns)-1):
-        axis.plot(bands_df['recip'], bands_df[f'{idx}'].values - fermi_e, lw=1, c='b')
+        axis.plot(bands_df['recip'], bands_df[f'{idx}'].values - fermi_e, lw=1, c=color, ls=linestyle)
 
     # plot a horizontal line denoting the Fermi level (0 eV)
     axis.axhline(0, ls='dashed', c='k', lw=0.5 )

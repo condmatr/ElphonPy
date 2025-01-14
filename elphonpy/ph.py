@@ -153,7 +153,7 @@ def matdyn(prefix, structure, kpath_dict, pseudo_dict, fc_file_str, workdir='pho
     
     print(f'Saving matdyn.in file for calculation of phonon dispersion, this will output the phonon dispersion file {phonon_file_str}')
             
-def plot_phonons(prefix, kpath_dict, axis=None, workdir='./phonons'):
+def plot_phonons(prefix, kpath_dict, axis=None, workdir='./phonons', **kwargs):
     """
     Prepares input file for QE matdyn.x calculation, writes input file to workdir. 
 
@@ -164,6 +164,11 @@ def plot_phonons(prefix, kpath_dict, axis=None, workdir='./phonons'):
     Returns: 
         phonons_dataframe (pandas.DataFrame): The data which the phonons are plotted.
     """
+    # kwargs
+    hsym_height = kwargs.get('hsym_height', -0.05)
+    color = kwargs.get('color', 'b')
+    linestyle = kwargs.get('linestyle', '-')
+    
     phonons_df = pd.read_csv(f'{workdir}/{str.lower(prefix)}.freq.gp', delim_whitespace=True, header=None)
     col_names = ['recip']
 
@@ -198,17 +203,17 @@ def plot_phonons(prefix, kpath_dict, axis=None, workdir='./phonons'):
             sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
             x_sym = phonons_df['recip'].iloc[sym_idx]
             axis.vlines(x_sym, ymin=miny, ymax=maxy+100, lw=0.3, colors='k')
-            axis.text(x_sym/max(phonons_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=axis.transAxes) 
+            axis.text(x_sym/max(phonons_df['recip']), hsym_height, f'{high_sym}', ha='center', va='center', transform=axis.transAxes) 
 
     else:
         for i, high_sym in enumerate(kpath_dict['path_symbols']):
             sym_idx = kpath_dict['path_idx_wrt_kpt'][i]
             x_sym = phonons_df['recip'].iloc[sym_idx]
             axis.vlines(x_sym, ymin=miny, ymax=maxy+100, lw=0.3, colors='k')
-            axis.text(x_sym/max(phonons_df['recip']), -0.05, f'{high_sym}', ha='center', va='center', transform=axis.transAxes)
+            axis.text(x_sym/max(phonons_df['recip']), hsym_height, f'{high_sym}', ha='center', va='center', transform=axis.transAxes)
 
     for i in rng:
-        axis.plot(phonons_df['recip'].values, phonons_df[f'Mode_{i}'].values*cm_to_meV, c='b', lw=1)
+        axis.plot(phonons_df['recip'].values, phonons_df[f'Mode_{i}'].values*cm_to_meV, c=color, lw=1, ls=linestyle)
     
     axis.set_ylim(miny,maxy)
     axis.set_xlim(0,max(phonons_df['recip']))
