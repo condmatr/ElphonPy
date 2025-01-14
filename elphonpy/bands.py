@@ -246,9 +246,9 @@ def bands_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_b
     bands_calc =  PWInput(structure=structure, pseudo=pseudopotentials,
                      control=pmd_bands['control'], electrons=pmd_bands['electrons'],
                      system=pmd_bands['system'])
-    bands_calc.write_file('bands.temp')
+    bands_calc.write_file(f'{workdir}/bands.temp')
     
-    with open('bands.temp', 'r+') as f:
+    with open(f'{workdir}/bands.temp', 'r+') as f:
         temp = f.readlines()
         for i, line in enumerate(temp):
             if 'K_POINTS' in line:
@@ -256,7 +256,7 @@ def bands_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_b
                 temp.remove(temp[i])
     f.close()
 
-    os.remove('bands.temp')
+    os.remove(f'{workdir}/bands.temp')
     
     with open(f'{workdir}/{prefix}_bands.in', 'w+') as f:
         for i in temp:
