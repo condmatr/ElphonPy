@@ -628,11 +628,11 @@ def kpt_res_grid(structure, res):
 
     sga = SpacegroupAnalyzer(structure)
     crystal_system = sga.get_crystal_system()
-    round_odd = ['hexagonal', 'cubic', 'tetragonal']
+    #round_odd = ['hexagonal', 'cubic', 'tetragonal']
     
-    if crystal_system in round_odd:
-        kpoint_grid = [g+1 if g%2 == 0 else g for g in initial_grid]
-    else:
+    #if crystal_system in round_odd:
+    #    kpoint_grid = [g+1 if g%2 == 0 else g for g in initial_grid]
+    #else:
         kpoint_grid = initial_grid
     
     return kpoint_grid

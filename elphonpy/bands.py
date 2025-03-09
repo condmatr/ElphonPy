@@ -244,8 +244,8 @@ def bands_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_b
     scf_calc.write_file(f'{workdir}/{prefix}_scf.in')
 
     bands_calc =  PWInput(structure=structure, pseudo=pseudopotentials,
-                     control=pmd_bands['control'], electrons=pmd_bands['electrons'],
-                     system=pmd_bands['system'])
+                          control=pmd_bands['control'], electrons=pmd_bands['electrons'],
+                          system=pmd_bands['system'])
     bands_calc.write_file(f'{workdir}/bands.temp')
     
     with open(f'{workdir}/bands.temp', 'r+') as f:
