@@ -633,7 +633,7 @@ def kpt_res_grid(structure, res):
     #if crystal_system in round_odd:
     #    kpoint_grid = [g+1 if g%2 == 0 else g for g in initial_grid]
     #else:
-        kpoint_grid = initial_grid
+    kpoint_grid = initial_grid
     
     return kpoint_grid
         

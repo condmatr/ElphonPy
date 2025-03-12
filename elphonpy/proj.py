@@ -1,4 +1,6 @@
 import os
+import re
+import glob
 import subprocess
 from elphonpy.pw import scf_input_gen, nscf_input_gen, to_str
 from elphonpy.pseudo import get_pseudos 
@@ -76,3 +78,126 @@ def scdm_proj_fit(prefix, proj_dir='./proj'):
 
     return mu_opt, sigma_opt
 
+import os
+import re
+import glob
+import pandas as pd
+import matplotlib.pyplot as plt
+
+def parse_projected_dos(proj_dir="proj"):
+    """
+    Scans the working directory for PDOS files of the form:
+       {at}.pdos_atm#n(At)_wfc#l(x)
+    Then sums columns for atoms of the same element (same {at}).
+    """
+    
+    # A helper dict to know which columns to expect for each orbital type
+    orbital_columns = {
+        's':  ["energy", "ldos", "s"],
+        'p':  ["energy", "ldos", "pz", "px", "py"],
+        'd':  ["energy", "ldos", "dz2", "dzx", "dzy", "dx2-y2", "dxy"],
+        'f':  ["energy", "ldos", "fz3", "fxz2", "fyz2", "fx2-y2_z", "fxyz", "fx(x2-3y2)", "fy(3x2-y2)"]
+    }
+    
+    # Store data in a dictionary keyed by the atomic symbol (lowercase)
+    data_dict = {}
+
+    # Regex to parse filenames of the form:
+    #    {at}.pdos_atm#(n)({At})_wfc#(l)({orb})
+    pattern = re.compile(
+        r'^([a-z]+)\.pdos_atm#(\d+)\([A-Z][a-z]*\)_wfc#(\d+)\(([spd])\)$'
+    )
+    
+    # Gather all matching .pdos files in proj_dir
+    files = glob.glob(os.path.join(proj_dir, "*.pdos_atm#*"))
+    
+    for file_path in files:
+        file_name = os.path.basename(file_path)
+        match = pattern.match(file_name)
+        if not match:
+            continue
+        
+        # Extract the relevant parts from the filename
+        at_symbol = match.group(1)   # atomic symbol
+        atom_index = match.group(2)  # atom_index (from structure)
+        wfc_index  = match.group(3)  # wavefunction index
+        orb_label  = match.group(4)  # s, p, or d
+        
+        # Determine the column list based on orb_label
+        col_list = orbital_columns[orb_label]
+
+        # Read the file, ignoring comment lines.
+        df = pd.read_csv(
+            file_path,
+            comment='#',
+            delim_whitespace=True,
+            names=col_list,
+        )
+        
+        # If we haven't seen this atomic symbol yet, create an entry
+        if at_symbol not in data_dict:
+            data_dict[at_symbol] = df
+        else:
+            # Merge with existing data on 'energy' and sum columns
+            existing_df = data_dict[at_symbol]
+            
+            merged = pd.merge(existing_df, df, on="energy", how="outer", suffixes=("_left", "_right"))
+            
+            # Build a dictionary of summed columns
+            sum_dict = {"energy": merged["energy"]}
+            
+            all_cols = [c for c in merged.columns if c != "energy"]
+            for c in all_cols:
+                if c.endswith("_left"):
+                    base = c.replace("_left","")
+                    right_col = base + "_right"
+                    if right_col in merged.columns:
+                        sum_dict[base] = merged[c].fillna(0) + merged[right_col].fillna(0)
+                    else:
+                        sum_dict[base] = merged[c].fillna(0)
+                elif c.endswith("_right"):
+                    base = c.replace("_right","")
+                    left_col = base + "_left"
+                    # if we already handled the left side, skip
+                    if left_col in merged.columns:
+                        continue
+                    else:
+                        sum_dict[base] = merged[c].fillna(0)
+                else:
+                    # no suffix => keep as is
+                    if c not in sum_dict:
+                        sum_dict[c] = merged[c].fillna(0)
+
+            new_df = pd.DataFrame(sum_dict).sort_values(by="energy").reset_index(drop=True)
+            data_dict[at_symbol] = new_df
+
+    return data_dict
+
+def plot_projected_dos(parsed_pdos_dict, fermi_e, x_min=None, x_max=None):
+    # Now plot the data for each atomic symbol
+    for at_symbol, df_summed in parsed_pdos_dict.items():
+        
+        orbitals = [c for c in df_summed.columns if c != "energy"]
+        
+        # Plot each orbital vs energy
+        fig, ax = plt.subplots(figsize=[6, 4], dpi=300)
+        for orb in orbitals[1:]:
+            if orb == 's':
+                ax.plot(df_summed["energy"], df_summed[orb], label=f'{at_symbol.capitalize()}:{orb}', lw=1, alpha=0.5)
+            if 'p' in orb:
+                ax.plot(df_summed["energy"], df_summed[orb], label=f'{at_symbol.capitalize()}:{orb}', lw=1, ls='dashed', alpha=0.5)
+            if 'd' in orb:
+                ax.plot(df_summed["energy"], df_summed[orb], label=f'{at_symbol.capitalize()}:{orb}', lw=1, ls='dotted', alpha=1)
+        ax.axvline(fermi_e, lw=0.5, c='k', alpha=0.5, ls='dashed')
+        ax.set_title(f"Projected DOS for {at_symbol.capitalize()}")
+        ax.set_xlabel("Energy (eV)")
+        ax.set_ylabel("DOS")
+        ax.legend()
+        if x_min == None and x_max == None:
+            plt.show()
+        else:
+            ax.set_xlim(x_min+fermi_e, x_max+fermi_e)
+            range_df = df_summed.query(f'energy < {x_max+fermi_e} and energy > {x_min+fermi_e}')
+            range_df = range_df.drop(columns=['energy','ldos'])
+            y_max = max(range_df.max()) * 1.25
+            ax.set_ylim(0, y_max)
