@@ -43,43 +43,50 @@ def get_ibrav_celldm(structure, get_primitive=True):
     sg_sym = sga.get_space_group_symbol()
     lat = structure.lattice
     dict_ = dict()
+    print("Trying ibrav identification: System = ", crys_sys, sg_sym[0])
 
     if crys_sys == 'cubic' and sg_sym[0] == 'P':
         dict_ = {'ibrav':1,
                  'celldm(1)':angs_to_bohr(lat.a)
                 }
 
-    if crys_sys == 'cubic' and sg_sym[0] == 'F':
+    elif crys_sys == 'cubic' and sg_sym[0] == 'F':
         a = 2 * np.abs(lat.matrix[0][0])
         dict_ = {'ibrav':2,
                  'celldm(1)':angs_to_bohr(a)
                 }
 
-    if crys_sys == 'cubic' and sg_sym[0] == 'I':
+    elif crys_sys == 'cubic' and sg_sym[0] == 'I':
         a = 2 * np.abs(lat.matrix[0][0])
         dict_ = {'ibrav':3,
                  'celldm(1)':angs_to_bohr(a)
                 }
 
-    if crys_sys == 'hexagonal':
+    elif crys_sys == 'hexagonal':
         dict_ = {'ibrav':4,
                  'celldm(1)':angs_to_bohr(lat.a),
                  'celldm(3)':lat.c/lat.a
                 }
 
-    if crys_sys == 'tetragonal' and sg_sym[0] == 'P':
+    elif crys_sys == 'tetragonal' and sg_sym[0] == 'P':
         dict_ = {'ibrav':6,
                  'celldm(1)':angs_to_bohr(lat.a),
                  'celldm(3)':lat.c/lat.a
                 }
     
-    if crys_sys == 'tetragonal' and sg_sym[0] == 'I':
+    elif crys_sys == 'tetragonal' and sg_sym[0] == 'I':
         dict_ = {'ibrav':7,
                  'celldm(1)':angs_to_bohr(lat.a),
                  'celldm(3)':lat.c/lat.a
                 }
+    
+    elif crys_sys == 'trigonal' and sg_sym[0] == 'P':
+        dict_ = {'ibrav':4,
+                 'celldm(1)':angs_to_bohr(lat.a),
+                 'celldm(3)':lat.c/lat.a
+                }
 
-    if crys_sys == 'triclinic':
+    elif crys_sys == 'triclinic':
         angles = lat.angles
         dict_ = {'ibrav':14,
                  'celldm(1)':angs_to_bohr(lat.a),
@@ -94,6 +101,7 @@ def get_ibrav_celldm(structure, get_primitive=True):
         dict_ = {'ibrav':0}
             
     return dict_
+
 
 def get_cell_params(structure):
     
@@ -838,49 +846,57 @@ def relax_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=N
 def read_relax_output(prefix, workdir='./relax', out_filename=None, cif_dir=None, get_primitive=True):
     import re
     from pymatgen.core import Structure, Lattice
+    from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+    
     """
-    Converts vcrelax.out file to CIF
-
+    Converts a vcrelax.out file to a CIF file.
+    
+    This function handles two cases:
+      - When the file contains "CELL_PARAMETERS (angstrom)" (ibrav=0), the values are
+        already in angstrom.
+      - When the file contains "CELL_PARAMETERS (alat= ...)" (ibrav != 0), the numbers are
+        in relative units. The number following "alat=" (given in bohr radii) is used to convert
+        these values to angstrom (using 1 bohr ≈ 0.52917721067 Å).
     
     Args:
-        prefix (str): prefix of input/output files for relax_calculations
-        workdir (str): path to relax_directory from current working directory (default: ./relax)
-        out_filename (str): filename for output CIF file (default: prefix)
-        cif_dir (str): path from current working directory to which the CIF file will be output (default: current working directory)
-        get_primitive (bool): whether to represent the structure in CIF as primitive (if it's not already) (default: True) 
+        prefix (str): Prefix of input/output files for relax calculations.
+        workdir (str): Path to the relax directory (default: './relax').
+        out_filename (str): Filename for the output CIF file (default: prefix).
+        cif_dir (str): Directory where the CIF file will be saved (default: workdir).
+        get_primitive (bool): Whether to represent the structure in CIF as its primitive cell (default: True).
         
     Returns:
-        relaxed_structure (Pymatgen IStructure): Pymatgen Structure object from relax calculation.
+        structure (pymatgen.core.structure.Structure): The Pymatgen structure object from the relax calculation.
     """
-    if out_filename == None:
-        filename = prefix
-    else:
-        filename = out_filename
     
-    if cif_dir == None:
-        save_cif_dir = workdir
-    else:
-        save_cif_dir = cif_dir
-
-    file_path = f'{workdir}/{prefix}_relax.out'
-
-    # Initialize variables
+    # Set output filename and directory
+    filename = prefix if out_filename is None else out_filename
+    save_cif_dir = workdir if cif_dir is None else cif_dir
+    
+    file_path = f"{workdir}/{prefix}_relax.out"
+    
+    # Initialize lists for lattice vectors and atomic positions
     cell_parameters = []
     atomic_positions = []
     species = []
     
-    # Regular expressions for parsing
-    cell_param_regex = re.compile(r'CELL_PARAMETERS\s*\(angstrom\)', re.IGNORECASE)
+    # Prepare regular expressions
+    # This regex captures the content inside parentheses in the CELL_PARAMETERS header.
+    cell_param_regex = re.compile(r'CELL_PARAMETERS\s*\((.*?)\)', re.IGNORECASE)
     atomic_pos_regex = re.compile(r'ATOMIC_POSITIONS\s*\(crystal\)', re.IGNORECASE)
-    end_section_regex = re.compile(r'End final coordinates', re.IGNORECASE)
     
+    # Read the file contents
     with open(file_path, 'r') as file:
         lines = file.readlines()
     
-    # Flags to track sections
+    # Flags to control parsing of sections
     in_section = False
     cell_params_started = False
     atomic_pos_started = False
+    
+    # Default conversion: if values are already in angstrom, no conversion is needed.
+    conversion_factor = 1.0  
+    bohr_to_angstrom = 0.52917721067
     
     for line in lines:
         if 'Begin final coordinates' in line:
@@ -889,26 +905,39 @@ def read_relax_output(prefix, workdir='./relax', out_filename=None, cif_dir=None
         if 'End final coordinates' in line:
             break
         if in_section:
-            # Extract CELL_PARAMETERS
-            if cell_param_regex.search(line):
+            # Look for the cell parameters header.
+            cell_param_header = cell_param_regex.search(line)
+            if cell_param_header:
                 cell_params_started = True
                 atomic_pos_started = False
+                header_info = cell_param_header.group(1)
+                # If the header contains "alat", perform conversion.
+                if 'alat' in header_info:
+                    alat_match = re.search(r'alat\s*=\s*([\d\.Ee+-]+)', header_info)
+                    if alat_match:
+                        alat_value = float(alat_match.group(1))
+                        conversion_factor = alat_value * bohr_to_angstrom
+                else:
+                    # If not "alat", assume the cell parameters are given in angstrom.
+                    conversion_factor = 1.0
                 continue
-    
-            # Extract ATOMIC_POSITIONS
+            
+            # Look for the atomic positions header.
             if atomic_pos_regex.search(line):
                 atomic_pos_started = True
                 cell_params_started = False
                 continue
-    
-            # Read CELL_PARAMETERS
+            
+            # Parse the cell parameters lines.
             if cell_params_started:
                 parts = line.strip().split()
                 if len(parts) == 3:
-                    cell_parameters.append([float(x) for x in parts])
+                    # Multiply each element by the conversion factor.
+                    row = [float(x) * conversion_factor for x in parts]
+                    cell_parameters.append(row)
                 continue
-    
-            # Read ATOMIC_POSITIONS
+            
+            # Parse the atomic positions lines.
             if atomic_pos_started:
                 parts = line.strip().split()
                 if len(parts) == 4:
@@ -916,36 +945,34 @@ def read_relax_output(prefix, workdir='./relax', out_filename=None, cif_dir=None
                     atomic_positions.append([float(x) for x in parts[1:]])
                 continue
     
-    # Validate extracted data
+    # Ensure that both sections were found
     if not cell_parameters:
         raise ValueError("CELL_PARAMETERS not found in the specified section.")
     if not atomic_positions:
         raise ValueError("ATOMIC_POSITIONS not found in the specified section.")
     
-    # Create Lattice object
+    # Create the Lattice object (the matrix is now in angstrom).
     lattice = Lattice(cell_parameters)
     
-    # Create Structure object
+    # Create the Structure object.
     structure = Structure(
         lattice=lattice,
         species=species,
         coords=atomic_positions,
-        coords_are_cartesian=False  # Since positions are in crystal coordinates
+        coords_are_cartesian=False  # atomic positions are provided in crystal (fractional) coordinates
     )
     
-    # Optionally, you can add additional properties
-    
-    # Print the Structure to verify
     print(structure)
     
-    structure.to(filename=f'{cif_dir}/{filename}.cif')    
-    
-    # Write xsf file to cif
-    if get_primitive == True:
+    # Convert to the primitive structure if requested.
+    if get_primitive:
         structure = SpacegroupAnalyzer(structure).find_primitive()
     else:
-        print('Primitive structure not chosen, please double check your celldm and ibrav if using this structure in your\
-               next calculation')
+        print('Primitive structure not chosen. Please double check your celldm and ibrav if using this structure in your next calculation.')
+    
+    # Save the structure to a CIF file.
+    structure.to(filename=f'{save_cif_dir}/{filename}.cif')
+    
     return structure
     
 
