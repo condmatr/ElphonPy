@@ -4,7 +4,7 @@ def get_total_energy(filename):
         contents = file.read()
 
     # Find the line that contains the total energy value
-    total_energy_line = [line for line in contents.split('\n') if line.startswith('!    total energy')][0]
+    total_energy_line = [line for line in contents.split('\n') if line.startswith('!    total energy')][-1]
     total_energy_str = total_energy_line.split('=')[1].strip()
     total_energy = float(total_energy_str.split()[0])
     

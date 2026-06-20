@@ -105,7 +105,7 @@ def parse_projected_dos(proj_dir="proj"):
     # Regex to parse filenames of the form:
     #    {at}.pdos_atm#(n)({At})_wfc#(l)({orb})
     pattern = re.compile(
-        r'^([a-z]+)\.pdos_atm#(\d+)\([A-Z][a-z]*\)_wfc#(\d+)\(([spd])\)$'
+        r'^.*\.pdos_atm#(\d+)\(([A-Z][a-z]*)\)_wfc#(\d+)\(([spdf])\)$'
     )
     
     # Gather all matching .pdos files in proj_dir
@@ -118,10 +118,10 @@ def parse_projected_dos(proj_dir="proj"):
             continue
         
         # Extract the relevant parts from the filename
-        at_symbol = match.group(1)   # atomic symbol
-        atom_index = match.group(2)  # atom_index (from structure)
-        wfc_index  = match.group(3)  # wavefunction index
-        orb_label  = match.group(4)  # s, p, or d
+        atom_index = match.group(1)
+        at_symbol  = match.group(2).lower()
+        wfc_index  = match.group(3)
+        orb_label  = match.group(4)
         
         # Determine the column list based on orb_label
         col_list = orbital_columns[orb_label]
