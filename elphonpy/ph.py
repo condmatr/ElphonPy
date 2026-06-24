@@ -14,7 +14,8 @@ def phonon_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_
         prefix (str): prefix of input/output files for SCF + PH calculations.
         structure (Pymatgen Structure or IStructure): Input structure.
         pseudo_dict (dict): A dict of the pseudopotentials to use. Default to None.
-        param_dict_scf (dict): A dict containing sections for SCF calculation input file ('system','control','electrons','kpoint_grid').
+        param_dict_scf (dict): A dict containing sections for SCF calculation input file ('system','control','electrons','kpoint_grid')
+            and an optional 'kpoint_shift'.
         param_dict_ph  (dict): A dict containing sections for SCF calculation input file ('inputph').
         multE (float): Multiplier for pseudopotentials ecutwfc, ecutrho if not specified in scf_param_dict.
         workdir (str): target directory for writing SCF + PH input files. (default: './phonons').
@@ -43,7 +44,8 @@ def phonon_input_gen(prefix, structure, pseudo_dict, param_dict_scf, param_dict_
     
     scf_calc = PWInput(structure=structure, pseudo=pseudopotentials,
                                control=pmd_scf['control'], electrons=pmd_scf['electrons'],
-                               system=pmd_scf['system'],kpoints_grid=pmd_scf['kpoint_grid'])
+                               system=pmd_scf['system'],kpoints_grid=pmd_scf['kpoint_grid'],
+                               kpoints_shift=pmd_scf.get('kpoint_shift', (0, 0, 0)))
     
     scf_calc.write_file(f'{workdir}/{prefix}_scf.in')
     print(f'SCF input file written to {workdir}')

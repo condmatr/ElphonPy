@@ -88,6 +88,7 @@ def parse_projected_dos(proj_dir="proj"):
     """
     Scans the working directory for PDOS files of the form:
        {at}.pdos_atm#n(At)_wfc#l(x)
+       {at}.pdos_atm#n(At)_wfc#l(x_jy) for SOC calculations
     Then sums columns for atoms of the same element (same {at}).
     """
     
@@ -104,8 +105,9 @@ def parse_projected_dos(proj_dir="proj"):
 
     # Regex to parse filenames of the form:
     #    {at}.pdos_atm#(n)({At})_wfc#(l)({orb})
+    # or {at}.pdos_atm#(n)({At})_wfc#(l)({orb}_j{j}) for SOC
     pattern = re.compile(
-        r'^.*\.pdos_atm#(\d+)\(([A-Z][a-z]*)\)_wfc#(\d+)\(([spdf])\)$'
+        r'^.*\.pdos_atm#(\d+)\(([A-Z][a-z]*)\)_wfc#(\d+)\(([spdf])(?:_j(\d+\.\d+))?\)$'
     )
     
     # Gather all matching .pdos files in proj_dir
@@ -122,9 +124,18 @@ def parse_projected_dos(proj_dir="proj"):
         at_symbol  = match.group(2).lower()
         wfc_index  = match.group(3)
         orb_label  = match.group(4)
+        j_label    = match.group(5)
         
         # Determine the column list based on orb_label
-        col_list = orbital_columns[orb_label]
+        if j_label is None:
+            col_list = orbital_columns[orb_label]
+        else:
+            j_value = float(j_label)
+            mj_values = np.arange(-j_value, j_value + 1)
+            col_list = ["energy", "ldos"] + [
+                f"{orb_label}_j{j_label}_mj{mj_value:g}"
+                for mj_value in mj_values
+            ]
 
         # Read the file, ignoring comment lines.
         df = pd.read_csv(
@@ -173,22 +184,93 @@ def parse_projected_dos(proj_dir="proj"):
 
     return data_dict
 
-def plot_projected_dos(parsed_pdos_dict, fermi_e, x_min=None, x_max=None):
+def plot_projected_dos(parsed_pdos_dict, fermi_e, x_min=None, x_max=None, spin='combined'):
+    """
+    Plots projected DOS, including j- and mj-resolved SOC data.
+
+    For SOC data, spin can be 'combined' or 'both'. The spin projections use
+    Clebsch-Gordan weights along the spin quantization axis. Since the QE PDOS
+    files do not contain phase information, these are projected contributions
+    rather than the full noncollinear spin DOS. In 'both' mode, the down
+    projection is plotted below zero.
+    """
+    if spin not in ['combined', 'both']:
+        raise ValueError("spin must be either 'combined' or 'both'")
+
+    soc_pattern = re.compile(r'^([spdf])_j(\d+\.\d+)_mj(-?\d+\.\d+)$')
+    l_values = {'s': 0, 'p': 1, 'd': 2, 'f': 3}
+
     # Now plot the data for each atomic symbol
     for at_symbol, df_summed in parsed_pdos_dict.items():
         
         orbitals = [c for c in df_summed.columns if c != "energy"]
+        soc_orbitals = {}
+
+        for orb in orbitals[1:]:
+            match = soc_pattern.match(orb)
+            if match is None:
+                continue
+
+            orb_label = match.group(1)
+            j_value = float(match.group(2))
+            mj_value = float(match.group(3))
+            soc_label = f'{orb_label}_j{match.group(2)}'
+            l_value = l_values[orb_label]
+
+            if soc_label not in soc_orbitals:
+                soc_orbitals[soc_label] = {
+                    'combined': np.zeros(len(df_summed)),
+                    'up': np.zeros(len(df_summed)),
+                    'down': np.zeros(len(df_summed)),
+                }
+
+            if np.isclose(j_value, l_value + 0.5):
+                up_weight = (l_value + mj_value + 0.5) / (2*l_value + 1)
+            else:
+                up_weight = (l_value - mj_value + 0.5) / (2*l_value + 1)
+
+            soc_orbitals[soc_label]['combined'] += df_summed[orb].values
+            soc_orbitals[soc_label]['up'] += df_summed[orb].values * up_weight
+            soc_orbitals[soc_label]['down'] += df_summed[orb].values * (1 - up_weight)
         
         # Plot each orbital vs energy
         fig, ax = plt.subplots(figsize=[6, 4], dpi=300)
+        plotted_values = []
         for orb in orbitals[1:]:
+            if soc_pattern.match(orb):
+                continue
             if orb == 's':
                 ax.plot(df_summed["energy"], df_summed[orb], label=f'{at_symbol.capitalize()}:{orb}', lw=1, alpha=0.5)
+                plotted_values.append(df_summed[orb].values)
             if 'p' in orb:
                 ax.plot(df_summed["energy"], df_summed[orb], label=f'{at_symbol.capitalize()}:{orb}', lw=1, ls='dashed', alpha=0.5)
+                plotted_values.append(df_summed[orb].values)
             if 'd' in orb:
                 ax.plot(df_summed["energy"], df_summed[orb], label=f'{at_symbol.capitalize()}:{orb}', lw=1, ls='dotted', alpha=1)
+                plotted_values.append(df_summed[orb].values)
+
+        for orb, pdos in soc_orbitals.items():
+            if orb.startswith('s'):
+                line_style = 'solid'
+            elif orb.startswith('p'):
+                line_style = 'dashed'
+            else:
+                line_style = 'dotted'
+
+            if spin == 'combined':
+                ax.plot(df_summed["energy"], pdos['combined'], label=f'{at_symbol.capitalize()}:{orb}',
+                        lw=1, ls=line_style, alpha=0.75)
+                plotted_values.append(pdos['combined'])
+            else:
+                ax.plot(df_summed["energy"], pdos['up'], label=f'{at_symbol.capitalize()}:{orb}:up',
+                        lw=1, ls=line_style, alpha=0.75)
+                ax.plot(df_summed["energy"], -pdos['down'], label=f'{at_symbol.capitalize()}:{orb}:down',
+                        lw=1, ls=line_style, alpha=0.75)
+                plotted_values.extend([pdos['up'], -pdos['down']])
+
         ax.axvline(fermi_e, lw=0.5, c='k', alpha=0.5, ls='dashed')
+        if spin == 'both' and soc_orbitals:
+            ax.axhline(0, lw=0.5, c='k', alpha=0.5)
         ax.set_title(f"Projected DOS for {at_symbol.capitalize()}")
         ax.set_xlabel("Energy (eV)")
         ax.set_ylabel("DOS")
@@ -197,7 +279,13 @@ def plot_projected_dos(parsed_pdos_dict, fermi_e, x_min=None, x_max=None):
             plt.show()
         else:
             ax.set_xlim(x_min+fermi_e, x_max+fermi_e)
-            range_df = df_summed.query(f'energy < {x_max+fermi_e} and energy > {x_min+fermi_e}')
-            range_df = range_df.drop(columns=['energy','ldos'])
-            y_max = max(range_df.max()) * 1.25
-            ax.set_ylim(0, y_max)
+            energy_mask = (df_summed['energy'] < x_max+fermi_e) & (df_summed['energy'] > x_min+fermi_e)
+            range_values = [values[energy_mask] for values in plotted_values if np.any(energy_mask)]
+            if range_values:
+                range_values = np.concatenate(range_values)
+                if spin == 'both' and soc_orbitals:
+                    y_max = max(abs(range_values.min()), abs(range_values.max())) * 1.25
+                    ax.set_ylim(-y_max, y_max)
+                else:
+                    y_max = range_values.max() * 1.25
+                    ax.set_ylim(0, y_max)

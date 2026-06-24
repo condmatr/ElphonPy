@@ -680,6 +680,7 @@ def scf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=Non
         structure (Pymatgen Structure or IStructure): Input structure.
         pseudo_dict (dict): A dict of the pseudopotentials to use. Default to None.
         param_dict  (dict): A dict containing sections for input file ('system','control','electrons','kpoint_grid')
+            and an optional 'kpoint_shift'.
         multE (float): Multiplier for pseudopotentials ecutwfc, ecutrho if not specified in param_dict.
         workdir (str): target directory for writing SCF input file.
         copy_pseudo (bool): Whether to copy pseudopotentials to current working directory in folder "pseudo".
@@ -712,7 +713,8 @@ def scf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=Non
     
     scf_calc = PWInput(structure=structure, pseudo=pseudopotentials, control=pmd['control'],
                        electrons=pmd['electrons'], system=pmd['system'], cell=None,
-                       kpoints_grid=pmd['kpoint_grid'], ions=None)
+                       kpoints_grid=pmd['kpoint_grid'],
+                       kpoints_shift=pmd.get('kpoint_shift', (0, 0, 0)), ions=None)
     
     scf_calc.write_file(f'./{workdir}/{prefix}_scf.in')
     
@@ -727,6 +729,7 @@ def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, rhoe=Non
         structure (Pymatgen Structure or IStructure): Input structure.
         pseudo_dict (dict): A dict of the pseudopotentials to use. Default to None.
         param_dict  (dict): A dict containing sections for input file ('system','control','electrons','kpoint_grid')
+            and an optional 'kpoint_shift'.
         multE (float): Multiplier for pseudopotentials ecutwfc, ecutrho if not specified in param_dict.
         workdir (str): target directory for writing SCF input file.
         copy_pseudo (bool): Whether to copy pseudopotentials to current working directory in folder "pseudo".
@@ -760,7 +763,8 @@ def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, rhoe=Non
         nscf_calc = PWInput(structure=structure, pseudo=pseudopotentials,
                             control=pmd['control'], electrons=pmd['electrons'],
                             system=pmd['system'],kpoints_mode=pmd['kpoint_mode'],
-                            kpoints_grid=pmd['kpoint_grid'])
+                            kpoints_grid=pmd['kpoint_grid'],
+                            kpoints_shift=pmd.get('kpoint_shift', (0, 0, 0)))
         nscf_calc.write_file(f'{workdir}/{prefix}_nscf.in')
     
     else:
@@ -776,18 +780,20 @@ def nscf_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1, rhoe=Non
                     temp = temp[:i] + temp[i+2:]
         f.close()
 
-        def dense_k(kg0, kg1, kg2):
+        def dense_k(kg0, kg1, kg2, ks0, ks1, ks2):
 
             tot = kg0*kg1*kg2
             dense_k = []
             for ii in range(kg0):
                 for jj in range(kg1):
                     for kk in range(kg2):
-                        dense_k.append([ii/kg0,jj/kg1,kk/kg2])
+                        dense_k.append([(ii+ks0/2)/kg0,(jj+ks1/2)/kg1,(kk+ks2/2)/kg2])
 
             return dense_k, tot
 
-        dense_k_grid, total_k = dense_k(pmd['kpoint_grid'][0], pmd['kpoint_grid'][1], pmd['kpoint_grid'][2])
+        kpoint_shift = pmd.get('kpoint_shift', (0, 0, 0))
+        dense_k_grid, total_k = dense_k(pmd['kpoint_grid'][0], pmd['kpoint_grid'][1], pmd['kpoint_grid'][2],
+                                        kpoint_shift[0], kpoint_shift[1], kpoint_shift[2])
 
         with open(f'{workdir}/{prefix}_nscf.in', 'w') as f:
             for i in temp:
@@ -810,6 +816,7 @@ def relax_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=N
         structure (Pymatgen Structure or IStructure): Input structure.
         pseudo_dict (dict): A dict of the pseudopotentials to use. Default to None.
         param_dict  (dict): A dict containing sections for input file ('system','control','electrons','kpoint_grid')
+            and an optional 'kpoint_shift'.
         multE (float): Multiplier for pseudopotentials ecutwfc, ecutrho if not specified in param_dict.
         workdir (str): target directory for writing SCF input file.
         copy_pseudo (bool): Whether to copy pseudopotentials to current working directory in folder "pseudo".
@@ -839,7 +846,8 @@ def relax_input_gen(prefix, structure, pseudo_dict, param_dict, multE=1,  rhoe=N
     
     relax_calc = PWInput(structure=structure, pseudo=pseudopotentials, control=pmd['control'],
                          electrons=pmd['electrons'], system=pmd['system'], cell=pmd['cell'],
-                         kpoints_grid=pmd['kpoint_grid'], ions=pmd['ions'])
+                         kpoints_grid=pmd['kpoint_grid'],
+                         kpoints_shift=pmd.get('kpoint_shift', (0, 0, 0)), ions=pmd['ions'])
     
     relax_calc.write_file(f'./{workdir}/{prefix}_relax.in')
     
@@ -975,4 +983,3 @@ def read_relax_output(prefix, workdir='./relax', out_filename=None, cif_dir=None
     
     return structure
     
-
